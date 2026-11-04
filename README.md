@@ -1,1 +1,2790 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>한국펫고등학교 실습견 일일 관리 일지 시스템 (37두 통합 관리)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Pretendard 폰트 -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <style>
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+    .fade-in {
+      animation: fadeIn 0.2s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    /* 커스텀 스크롤바 */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
 
+  <!-- 상단 토스트 알림창 -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- 상단 고정 헤더 & 권한별 네비게이션 -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between py-3 gap-3">
+        
+        <!-- 좌측: 깨지지 않는 순수 SVG 한국펫고등학교 공식 엠블럼 & 타이틀 -->
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-3">
+            <!-- 한국펫고등학교 벡터 엠블럼 (100% 인라인 SVG - 이미지 깨짐 원천 차단) -->
+            <div class="w-12 h-12 rounded-2xl bg-[#0062B1] p-1 flex items-center justify-center shadow-sm shrink-0">
+              <svg viewBox="0 0 120 120" class="w-full h-full" xmlns="http://www.w3.org/2000/svg" aria-label="한국펫고등학교 로고">
+                <circle cx="60" cy="60" r="56" fill="#0062B1" stroke="#ffffff" stroke-width="2" stroke-dasharray="6 3"/>
+                <circle cx="60" cy="60" r="48" fill="none" stroke="#ffffff" stroke-width="10"/>
+                <circle cx="60" cy="60" r="39" fill="#0062B1" stroke="#ffffff" stroke-width="1.5"/>
+                <!-- 상단 KOREA PET 텍스트 장식 -->
+                <text x="60" y="21" fill="#0062B1" font-size="7.5" font-weight="900" text-anchor="middle" letter-spacing="0.5">한국펫고등학교</text>
+                <text x="60" y="104" fill="#0062B1" font-size="6.2" font-weight="800" text-anchor="middle" letter-spacing="0.4">KOREA PET HIGH</text>
+                <text x="66" y="42" fill="#ffffff" font-size="6.5" font-weight="700" text-anchor="middle">1974</text>
+                <!-- 사람과 강아지가 마주보는 실루엣 -->
+                <path d="M32 90 C34 75 40 68 46 65 C42 61 42 50 49 46 C55 43 60 47 60 54 C60 60 56 64 54 66 C60 70 63 78 65 90 Z" fill="#ffffff"/>
+                <path d="M67 90 C68 78 70 70 72 64 C68 63 65 60 66 57 C67 55 71 55 74 52 C77 49 83 50 85 55 C87 60 85 68 88 90 Z" fill="#ffffff"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <h1 class="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">한국펫고등학교 실습견 관리 시스템</h1>
+                <span id="roleModeBadge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-sky-100 text-sky-800 border border-sky-200">
+                  🧑‍🎓 학생 작성 모드
+                </span>
+                <span id="syncStatusBadge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  정상 작동 중
+                </span>
+              </div>
+              <p class="text-xs text-slate-500">아침·저녁 개체별 관리 기록 (제출된 기록 열람 및 개체 추가·제거는 선생님 전용)</p>
+            </div>
+          </div>
+
+          <!-- 모바일용 교사 로그인/로그아웃 버튼 -->
+          <div class="lg:hidden">
+            <button id="mobileTeacherAuthBtn" onclick="handleTeacherAuthButtonClick()" class="px-3 py-1.5 rounded-xl border border-slate-300 bg-slate-900 text-white text-xs font-extrabold shadow-2xs flex items-center gap-1 cursor-pointer">
+              <span>🔒</span>
+              <span>교사 로그인</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 우측 탭 네비게이션 및 교사 로그인 버튼 -->
+        <div class="flex items-center justify-between lg:justify-end gap-2">
+          <nav class="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl overflow-x-auto">
+            <!-- 학생/교사 공용: 일지 작성 탭 -->
+            <button onclick="switchMainTab('write')" id="navBtn-write" class="nav-tab-btn whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all bg-white text-sky-700 shadow-xs flex items-center gap-1.5 cursor-pointer">
+              <span>✏️</span>
+              <span>관리 일지 작성</span>
+            </button>
+
+            <!-- 교사 전용 탭 1: 미작성 모니터링 -->
+            <button onclick="switchMainTab('monitor')" id="navBtn-monitor" class="teacher-only-nav hidden whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-600 hover:text-slate-900 flex items-center gap-1.5 cursor-pointer">
+              <span>📊</span>
+              <span>교사 모니터링</span>
+              <span id="navMissingCountBadge" class="ml-0.5 px-1.5 py-0.2 bg-rose-500 text-white text-[10px] rounded-full font-extrabold">0</span>
+            </button>
+
+            <!-- 교사 전용 탭 2: 실습견 추가 / 제거 / 배정 관리 -->
+            <button onclick="switchMainTab('settings')" id="navBtn-settings" class="teacher-only-nav hidden whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-600 hover:text-slate-900 flex items-center gap-1.5 cursor-pointer">
+              <span>🐶</span>
+              <span>실습견 추가·제거·배정</span>
+            </button>
+
+            <!-- 교사 전용 탭 3: 전체 일지 열람 및 엑셀 다운로드 -->
+            <button onclick="switchMainTab('history')" id="navBtn-history" class="teacher-only-nav hidden whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-600 hover:text-slate-900 flex items-center gap-1.5 cursor-pointer">
+              <span>📋</span>
+              <span>전체 기록·엑셀</span>
+            </button>
+          </nav>
+
+          <!-- 데스크톱 교사 로그인/로그아웃 버튼 -->
+          <button id="desktopTeacherAuthBtn" onclick="handleTeacherAuthButtonClick()" class="hidden lg:flex px-3.5 py-2 rounded-xl border border-slate-300 bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-extrabold shadow-xs items-center gap-1.5 transition-all cursor-pointer shrink-0">
+            <span>🔒</span>
+            <span>교사 관리자 로그인</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 컨텐츠 영역 -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6">
+
+    <!-- ===================================================================
+         [탭 1 - 기본 화면] ✏️ 일일 관리 일지 작성 (학생용 모드)
+         =================================================================== -->
+    <section id="tabSection-write" class="max-w-3xl mx-auto space-y-5 fade-in">
+
+      <!-- 학생 모드 보안 안내 배너 -->
+      <div id="studentPrivacyNoticeBar" class="bg-white rounded-2xl p-4 border border-sky-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-start sm:items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-xs sm:text-sm font-extrabold text-slate-900">학생 전용 일지 작성 화면 (제출 기록 보호 중)</h2>
+            <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">
+              학생들이 작성한 일지 내용과 특이사항은 <strong>담당 선생님만 열람</strong>할 수 있습니다. 관리 후 정확히 입력해 주세요.
+            </p>
+          </div>
+        </div>
+        <button type="button" onclick="handleTeacherAuthButtonClick()" class="self-end sm:self-auto px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold shrink-0 cursor-pointer">
+          선생님 로그인 (미작성 확인·개체 관리) ▶
+        </button>
+      </div>
+
+      <!-- 방금 제출한 내 기록 완료 알림창 -->
+      <div id="sessionSubmittedBanner" class="hidden bg-emerald-50 border-2 border-emerald-400 rounded-2xl p-4 text-emerald-950 shadow-xs fade-in">
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex items-center gap-2.5">
+            <span class="text-2xl">✅</span>
+            <div>
+              <h3 class="text-sm font-extrabold text-emerald-900">관리 일지가 선생님께 안전하게 제출되었습니다!</h3>
+              <p id="sessionSubmittedText" class="text-xs font-bold text-emerald-800 mt-0.5"></p>
+            </div>
+          </div>
+          <button type="button" onclick="document.getElementById('sessionSubmittedBanner').classList.add('hidden')" class="text-xs font-bold text-emerald-700 hover:underline cursor-pointer">닫기</button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden">
+        <!-- 폼 상단 배너 -->
+        <div class="bg-gradient-to-r from-[#0062B1] via-sky-700 to-blue-800 px-6 py-5 text-white flex items-center justify-between">
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span id="formHeaderTotalDogsBadge" class="px-2.5 py-0.5 rounded-full bg-white/20 text-white text-[11px] font-bold">한국펫고등학교 실습견</span>
+              <span id="formHeaderSlotStatusPill" class="px-2.5 py-0.5 rounded-full bg-amber-300 text-slate-900 text-[11px] font-extrabold">작성 대기 중</span>
+            </div>
+            <h2 class="text-lg sm:text-xl font-extrabold mt-1.5">✏️ 실습견 일일 관리 일지 작성</h2>
+            <p class="text-xs text-sky-100 mt-0.5">아침(오전)·저녁(오후) 관리 후 즉시 작성해 주세요. 작성자와 제출 시각이 자동 기록됩니다.</p>
+          </div>
+          <!-- 순수 SVG 강아지 아이콘 -->
+          <div class="hidden sm:flex w-14 h-14 rounded-2xl bg-white/15 items-center justify-center">
+            <svg class="w-9 h-9 text-white" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-4.5-3.5C6.67 6.5 6 7.17 6 8s.67 1.5 1.5 1.5S9 8.83 9 8s-.67-1.5-1.5-1.5zm9 0c-.83 0-1.5.67-1.5 1.5S15.67 9.5 16.5 9.5 18 8.83 18 8s-.67-1.5-1.5-1.5zM9.5 4C8.67 4 8 4.67 8 5.5S8.67 7 9.5 7 11 6.33 11 5.5 10.33 4 9.5 4zm5 0c-.83 0-1.5.67-1.5 1.5S13.67 7 14.5 7 16 6.33 16 5.5 15.33 4 14.5 4zM12 13.5c-2.33 0-4.32 1.45-5.12 3.5h10.24c-.8-2.05-2.79-3.5-5.12-3.5z"/>
+            </svg>
+          </div>
+        </div>
+
+        <form id="careLogForm" onsubmit="handleCareLogSubmit(event)" class="p-5 sm:p-7 space-y-6">
+          <input type="hidden" id="editingLogId" value="">
+
+          <!-- 1. 날짜 및 오전/오후 시간대 선택 -->
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+            <div class="sm:col-span-5">
+              <label class="block text-xs font-extrabold text-slate-700 mb-1.5">📅 관리 일자</label>
+              <input type="date" id="formDateInput" required onchange="handleFormDogOrSlotChange()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500">
+            </div>
+
+            <div class="sm:col-span-7">
+              <label class="block text-xs font-extrabold text-slate-700 mb-1.5">⏰ 관리 시간대 선택 (아침 / 저녁)</label>
+              <div class="grid grid-cols-2 gap-2.5">
+                <button type="button" onclick="selectFormPeriod('AM')" id="periodBtn-AM" class="py-2.5 px-4 rounded-xl font-extrabold text-sm border-2 transition-all flex items-center justify-center gap-2 bg-amber-50 border-amber-500 text-amber-900 shadow-2xs cursor-pointer">
+                  <span>☀️</span>
+                  <span>오전(아침) 관리</span>
+                </button>
+                <button type="button" onclick="selectFormPeriod('PM')" id="periodBtn-PM" class="py-2.5 px-4 rounded-xl font-extrabold text-sm border-2 transition-all flex items-center justify-center gap-2 bg-white border-slate-200 text-slate-600 hover:bg-slate-100 cursor-pointer">
+                  <span>🌙</span>
+                  <span>오후(저녁) 관리</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. 실습견 빠른 검색 & 필터 선택 -->
+          <div class="space-y-3.5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <label class="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
+                <span>🐶</span>
+                <span>관리한 실습견 선택 (내 이름 또는 강아지 이름 검색)</span>
+              </label>
+              <!-- 구분 필터 칩 -->
+              <div class="flex flex-wrap items-center gap-1">
+                <button type="button" onclick="setFormCategoryFilter('ALL')" id="formCatBtn-ALL" class="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-sky-600 text-white cursor-pointer">전체</button>
+                <button type="button" onclick="setFormCategoryFilter('훈련')" id="formCatBtn-훈련" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer">훈련</button>
+                <button type="button" onclick="setFormCategoryFilter('미용')" id="formCatBtn-미용" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer">미용</button>
+                <button type="button" onclick="setFormCategoryFilter('입양모집')" id="formCatBtn-입양모집" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer">입양모집</button>
+                <button type="button" onclick="setFormCategoryFilter('입양예정')" id="formCatBtn-입양예정" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer">입양예정</button>
+              </div>
+            </div>
+
+            <!-- 검색창 -->
+            <div class="relative">
+              <input type="text" id="formDogSearchInput" oninput="populateFormDogSelectAndCards()" placeholder="🔍 강아지 이름(예: 라온, 봉화, 켈리) 또는 담당 학생 이름(예: 조현지, 유하람) 입력..." class="w-full pl-9 pr-20 py-2.5 rounded-xl border border-slate-300 bg-slate-50 focus:bg-white text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔎</span>
+              <button type="button" onclick="clearFormDogSearch()" class="absolute right-2.5 top-1/2 -translate-y-1/2 px-2 py-0.5 rounded bg-slate-200 hover:bg-slate-300 text-[11px] font-bold text-slate-600 cursor-pointer">초기화</button>
+            </div>
+
+            <!-- 빠른 강아지 선택 카드 그리드 -->
+            <div id="formDogQuickCards" class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-56 overflow-y-auto p-1.5 border border-slate-200/80 rounded-2xl bg-slate-50/60">
+              <!-- JS로 렌더링 -->
+            </div>
+
+            <!-- 드롭다운 병행 지원 -->
+            <select id="formDogSelect" required onchange="handleFormDogOrSlotChange()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm font-extrabold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500">
+              <!-- JS로 렌더링 -->
+            </select>
+
+            <!-- 선택한 강아지의 정보 및 필수 주의사항 알림 박스 -->
+            <div id="selectedDogCautionBanner" class="p-4 rounded-2xl bg-amber-50/90 border-2 border-amber-300/90 text-xs space-y-1.5">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <span class="font-extrabold text-amber-950 text-sm flex items-center gap-1.5">
+                  <span>🚨</span>
+                  <span id="cautionDogTitle">필수 관리 안내</span>
+                </span>
+                <div class="flex items-center gap-1.5">
+                  <span id="cautionDogBreed" class="px-2 py-0.5 rounded-full bg-white text-amber-900 border border-amber-300 font-bold text-[11px]">품종</span>
+                  <span id="cautionDogCategory" class="px-2 py-0.5 rounded-full bg-amber-200/80 text-amber-950 font-extrabold text-[11px]">구분</span>
+                </div>
+              </div>
+              <p id="cautionDogText" class="text-amber-900 font-semibold leading-relaxed"></p>
+            </div>
+
+            <!-- 이미 제출된 타임인지 안내하는 배너 -->
+            <div id="existingLogNoticeBanner" class="hidden p-3.5 rounded-2xl bg-sky-50 border border-sky-200 text-xs text-sky-900 flex items-center justify-between gap-2">
+              <div>
+                <span class="font-extrabold" id="existingLogNoticeTitle">✅ 이 시간대 관리 일지는 이미 제출되었습니다.</span>
+                <span id="existingLogNoticeText" class="ml-1">다시 제출하면 최신 기록으로 업데이트됩니다.</span>
+              </div>
+              <span class="px-2 py-0.5 bg-sky-600 text-white rounded-md font-bold text-[11px] shrink-0">재작성 가능</span>
+            </div>
+
+            <!-- 작성자(기록자) 이름 입력 -->
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+              <div class="flex flex-wrap items-center justify-between gap-1 mb-2">
+                <label for="formWriterInput" class="text-xs font-extrabold text-slate-800">
+                  🧑‍🎓 실제 관리 및 기록 학생 이름 <span class="text-rose-500">*</span>
+                </label>
+                <span class="text-[11px] font-semibold text-sky-700">👇 아래 담당자 이름을 누르면 자동 입력됩니다 (대타는 본인 이름 입력)</span>
+              </div>
+              <div class="flex flex-col sm:flex-row gap-2">
+                <input type="text" id="formWriterInput" required placeholder="본인 이름을 입력하세요" class="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm font-extrabold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                <div id="writerQuickChips" class="flex items-center gap-1.5 flex-wrap">
+                  <!-- JS로 담당 학생 버튼 생성 -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. 몸무게(kg) 및 사료 급여량(g) -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+            <!-- 몸무게 -->
+            <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
+              <div class="flex items-center justify-between mb-1.5">
+                <label for="formWeightInput" class="text-xs font-extrabold text-slate-800">⚖️ 몸무게 측정 (kg) *</label>
+                <button type="button" id="weightHintBtn" onclick="applyRecommendedWeight()" class="text-[11px] font-bold text-sky-600 hover:underline cursor-pointer">
+                  기준 체중 입력
+                </button>
+              </div>
+              <div class="relative">
+                <input type="number" step="0.01" min="0.5" max="80" id="formWeightInput" required placeholder="예: 15.2" class="w-full px-3.5 py-2.5 pr-12 rounded-xl border border-slate-300 bg-white text-base font-extrabold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">kg</span>
+              </div>
+            </div>
+
+            <!-- 사료 급여량 -->
+            <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
+              <div class="flex items-center justify-between mb-1.5">
+                <label for="formFeedAmountInput" class="text-xs font-extrabold text-slate-800">🥣 사료 급여량 (g) *</label>
+                <button type="button" id="feedHintBtn" onclick="applyRecommendedFeed()" class="text-[11px] font-bold text-sky-600 hover:underline cursor-pointer">
+                  권장량 입력
+                </button>
+              </div>
+              <div class="relative">
+                <input type="number" step="1" min="0" max="2000" id="formFeedAmountInput" required placeholder="예: 150" class="w-full px-3.5 py-2.5 pr-20 rounded-xl border border-slate-300 bg-white text-base font-extrabold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">g 급여</span>
+              </div>
+              <!-- 식욕 상태 빠른 체크 -->
+              <div class="flex items-center gap-1.5 mt-2 flex-wrap">
+                <span class="text-[11px] font-bold text-slate-500 mr-1">섭취 상태:</span>
+                <button type="button" onclick="selectFeedStatus('완식')" id="feedStatusBtn-완식" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-600 text-white cursor-pointer">다 먹음(완식)</button>
+                <button type="button" onclick="selectFeedStatus('남김')" id="feedStatusBtn-남김" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white border border-slate-200 text-slate-600 cursor-pointer">조금 남김</button>
+                <button type="button" onclick="selectFeedStatus('거부')" id="feedStatusBtn-거부" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white border border-slate-200 text-slate-600 cursor-pointer">안 먹음(주의)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. 산책 시간 (시작 ~ 종료 & 소요 시간 자동 계산) -->
+          <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <label class="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
+                <span>🦮</span>
+                <span>산책 시간 기록 (시작 시각 ~ 종료 시각)</span>
+              </label>
+
+              <label class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 cursor-pointer">
+                <input type="checkbox" id="formWalkSkippedCheck" onchange="toggleWalkSkipped()" class="rounded text-rose-600 w-4 h-4">
+                <span>산책 생략/제한 (수술 회복·우천 등)</span>
+              </label>
+            </div>
+
+            <div id="walkTimeInputsWrapper" class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+              <div class="sm:col-span-4">
+                <span class="block text-[11px] font-semibold text-slate-500 mb-1">산책 시작 시각</span>
+                <input type="time" id="formWalkStart" onchange="calculateWalkDuration()" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-sm font-bold text-slate-900">
+              </div>
+              <div class="sm:col-span-4">
+                <span class="block text-[11px] font-semibold text-slate-500 mb-1">산책 종료 시각</span>
+                <input type="time" id="formWalkEnd" onchange="calculateWalkDuration()" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-sm font-bold text-slate-900">
+              </div>
+              <div class="sm:col-span-4 flex flex-col justify-end">
+                <span class="block text-[11px] font-semibold text-slate-500 mb-1">총 산책 시간 (자동계산)</span>
+                <div id="walkDurationBadge" class="px-3 py-2 rounded-xl bg-sky-100 border border-sky-200 text-sky-900 font-extrabold text-sm text-center">
+                  20분 산책
+                </div>
+              </div>
+            </div>
+
+            <!-- 빠른 산책 시간 세팅 버튼 -->
+            <div id="walkQuickButtons" class="flex flex-wrap items-center gap-1.5 pt-1">
+              <span class="text-[11px] font-bold text-slate-500 mr-1">빠른 시간 설정:</span>
+              <button type="button" onclick="setQuickWalkMinutes(15)" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:bg-sky-50 text-[11px] font-bold text-slate-700 cursor-pointer">+15분 산책</button>
+              <button type="button" onclick="setQuickWalkMinutes(20)" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:bg-sky-50 text-[11px] font-bold text-slate-700 cursor-pointer">+20분 산책</button>
+              <button type="button" onclick="setQuickWalkMinutes(30)" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:bg-sky-50 text-[11px] font-bold text-slate-700 cursor-pointer">+30분 산책</button>
+              <button type="button" onclick="setWalkNowEnd(20)" class="px-2.5 py-1 rounded-lg bg-sky-50 border border-sky-200 hover:bg-sky-100 text-[11px] font-bold text-sky-700 cursor-pointer">방금 20분 산책 마침</button>
+            </div>
+          </div>
+
+          <!-- 5. 배변 상태 / 배뇨 상태 (기타 직접 입력 텍스트창 탑재!) -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- 배변 상태 -->
+            <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 flex flex-col justify-between space-y-3">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <label class="text-xs font-extrabold text-slate-800">💩 배변(대변) 상태 선택</label>
+                  <span class="text-[10px] font-bold text-sky-700">기타/상세 직접 입력 가능</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2" id="fecesBtnGroup">
+                  <button type="button" onclick="selectFecesStatus('정상')" data-val="정상" class="feces-btn py-2 px-2.5 rounded-xl text-xs font-extrabold border-2 transition-all bg-emerald-50 border-emerald-500 text-emerald-900 cursor-pointer">
+                    ✅ 정상 (맛동산)
+                  </button>
+                  <button type="button" onclick="selectFecesStatus('무른변')" data-val="무른변" class="feces-btn py-2 px-2.5 rounded-xl text-xs font-bold border-2 transition-all bg-white border-slate-200 text-slate-600 cursor-pointer">
+                    ⚠️ 약간 무름(연변)
+                  </button>
+                  <button type="button" onclick="selectFecesStatus('설사(주의)')" data-val="설사(주의)" class="feces-btn py-2 px-2.5 rounded-xl text-xs font-bold border-2 transition-all bg-white border-slate-200 text-slate-600 cursor-pointer">
+                    🚨 설사 (주의)
+                  </button>
+                  <button type="button" onclick="selectFecesStatus('점액/혈변(주의)')" data-val="점액/혈변(주의)" class="feces-btn py-2 px-2.5 rounded-xl text-xs font-bold border-2 transition-all bg-white border-slate-200 text-slate-600 cursor-pointer">
+                    🩸 점액/혈변
+                  </button>
+                  <button type="button" onclick="selectFecesStatus('배변안함')" data-val="배변안함" class="feces-btn py-2 px-2.5 rounded-xl text-xs font-bold border-2 transition-all bg-white border-slate-200 text-slate-600 cursor-pointer">
+                    ➖ 배변 안 함
+                  </button>
+                  <button type="button" onclick="selectFecesStatus('기타(직접입력)')" data-val="기타(직접입력)" class="feces-btn py-2 px-2.5 rounded-xl text-xs font-bold border-2 transition-all bg-white border-slate-200 text-slate-700 cursor-pointer">
+                    ✍️ 기타 (직접 입력)
+                  </button>
+                </div>
+              </div>
+
+              <!-- 배변 기타 상세 직접 입력란 -->
+              <div id="fecesCustomWrapper" class="pt-1">
+                <label for="formFecesCustomInput" class="block text-[11px] font-bold text-slate-600 mb-1">
+                  ✍️ 배변 기타 / 상세 상태 직접 작성 (선택 또는 기타 시 입력)
+                </label>
+                <input type="text" id="formFecesCustomInput" placeholder="예: 처음엔 정상변 보다가 끝에 조금 무르게 봄, 횟수 2회 등" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500">
+              </div>
+            </div>
+
+            <!-- 배뇨 상태 -->
+            <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 flex flex-col justify-between space-y-3">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <label class="text-xs font-extrabold text-slate-800">💧 배뇨(소변) 상태 선택</label>
+                  <span class="text-[10px] font-bold text-sky-700">기타/상세 직접 입력 가능</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2" id="urineBtnGroup">
+                  <button type="button" onclick="selectUrineStatus('정상')" data-val="정상" class="urine-btn py-2 px-2.5 rounded-xl text-xs font-extrabold border-2 transition-all bg-emerald-50 border-emerald-500 text-emerald-900 cursor-pointer">
+                    ✅ 정상 (맑은 노란색)
+                  </button>
+                  <button type="button" onclick="selectUrineStatus('진한소변')" data-val="진한소변" class="urine-btn py-2 px-2.5 rounded-xl text-xs font-bold border-2 transition-all bg-white border-slate-200 text-slate-600 cursor-pointer">
+                    🟡 진한 노란색
+                  </button>
+                  <button type="button" onclick="selectUrineStatus('빈뇨/소량자주')" data-val="빈뇨/소량자주" class="urine-btn py-2 px-2.5 rounded-xl text-xs font-bold border-2 transition-all bg-white border-slate-200 text-slate-600 cursor-pointer">
+                    💦 빈뇨/소량씩 자주
+                  </button>
+                  <button type="button" onclick="selectUrineStatus('혈뇨/이상(주의)')" data-val="혈뇨/이상(주의)" class="urine-btn py-2 px-2.5 rounded-xl text-xs font-bold border-2 transition-all bg-white border-slate-200 text-slate-600 cursor-pointer">
+                    🚨 혈뇨/붉은기 (주의)
+                  </button>
+                  <button type="button" onclick="selectUrineStatus('배뇨안함')" data-val="배뇨안함" class="urine-btn py-2 px-2.5 rounded-xl text-xs font-bold border-2 transition-all bg-white border-slate-200 text-slate-600 cursor-pointer">
+                    ➖ 배뇨 안 함
+                  </button>
+                  <button type="button" onclick="selectUrineStatus('기타(직접입력)')" data-val="기타(직접입력)" class="urine-btn py-2 px-2.5 rounded-xl text-xs font-bold border-2 transition-all bg-white border-slate-200 text-slate-700 cursor-pointer">
+                    ✍️ 기타 (직접 입력)
+                  </button>
+                </div>
+              </div>
+
+              <!-- 배뇨 기타 상세 직접 입력란 -->
+              <div id="urineCustomWrapper" class="pt-1">
+                <label for="formUrineCustomInput" class="block text-[11px] font-bold text-slate-600 mb-1">
+                  ✍️ 배뇨 기타 / 상세 상태 직접 작성 (선택 또는 기타 시 입력)
+                </label>
+                <input type="text" id="formUrineCustomInput" placeholder="예: 산책 중 마킹 3회, 패드에 소량 배뇨, 냄새가 강함 등" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500">
+              </div>
+            </div>
+          </div>
+
+          <!-- 6. 필수 위생·처치 체크리스트 및 특이사항 태그 -->
+          <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 space-y-3">
+            <div>
+              <label class="block text-xs font-extrabold text-slate-800 mb-2">✨ 실시한 위생 관리 및 특이사항 빠른 체크 (해당 항목 모두 터치)</label>
+              <div class="flex flex-wrap gap-2" id="careChecklistContainer">
+                <button type="button" onclick="toggleCareCheckItem(this)" data-item="물 급여 완료" class="care-check-chip px-3 py-1.5 rounded-xl text-xs font-bold border-2 bg-sky-50 border-sky-500 text-sky-900 transition-all cursor-pointer">
+                  💧 신선한 물 급여
+                </button>
+                <button type="button" onclick="toggleCareCheckItem(this)" data-item="기본 타월링(눈·입·발·생식기)" class="care-check-chip px-3 py-1.5 rounded-xl text-xs font-bold border-2 bg-sky-50 border-sky-500 text-sky-900 transition-all cursor-pointer">
+                  🧻 눈곱·입·발·생식기 타월링
+                </button>
+                <button type="button" onclick="toggleCareCheckItem(this)" data-item="필수 약/유산균 급여" class="care-check-chip px-3 py-1.5 rounded-xl text-xs font-bold border-2 bg-white border-slate-200 text-slate-600 transition-all cursor-pointer">
+                  💊 필수 약·유산균 급여
+                </button>
+                <button type="button" onclick="toggleCareCheckItem(this)" data-item="넥카라 착용 확인" class="care-check-chip px-3 py-1.5 rounded-xl text-xs font-bold border-2 bg-white border-slate-200 text-slate-600 transition-all cursor-pointer">
+                  🛡️ 넥카라 착용 확인
+                </button>
+                <button type="button" onclick="toggleCareCheckItem(this)" data-item="환부 소독/연고/보습제" class="care-check-chip px-3 py-1.5 rounded-xl text-xs font-bold border-2 bg-white border-slate-200 text-slate-600 transition-all cursor-pointer">
+                  🩹 소독·보습제 처치
+                </button>
+                <button type="button" onclick="toggleCareCheckItem(this)" data-item="귀/눈 세정" class="care-check-chip px-3 py-1.5 rounded-xl text-xs font-bold border-2 bg-white border-slate-200 text-slate-600 transition-all cursor-pointer">
+                  👂 귀·눈 세정
+                </button>
+                <button type="button" onclick="toggleCareCheckItem(this)" data-item="식욕부진/구토/기침(주의)" class="care-check-chip px-3 py-1.5 rounded-xl text-xs font-bold border-2 bg-white border-slate-200 text-slate-600 transition-all cursor-pointer">
+                  🚨 식욕부진·구토·기침
+                </button>
+                <button type="button" onclick="toggleCareCheckItem(this, true)" data-item="기타 특이사항 직접입력" class="care-check-chip px-3 py-1.5 rounded-xl text-xs font-bold border-2 bg-white border-slate-200 text-slate-700 transition-all cursor-pointer">
+                  ✍️ 기타 특이사항 (직접 작성)
+                </button>
+              </div>
+            </div>
+
+            <!-- 7. 특이사항 및 기타 전달 메모 자유 작성란 -->
+            <div class="pt-2 border-t border-slate-200/70">
+              <div class="flex items-center justify-between mb-1.5">
+                <label for="formNotesInput" class="text-xs font-extrabold text-slate-800">
+                  📝 특이사항 및 기타 전달사항 직접 작성 (선생님께 보고할 내용)
+                </label>
+                <span class="text-[11px] font-semibold text-slate-500">🔒 담당 선생님만 열람 가능</span>
+              </div>
+              <textarea id="formNotesInput" rows="3" placeholder="배변/배뇨 추가 상태, 투약 내역, 넥카라 착용, 컨디션, 사료 남긴 이유, 피부나 다리 상태 등 특이사항을 자유롭게 적어주세요." class="w-full px-4 py-3 rounded-2xl border border-slate-300 bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500"></textarea>
+            </div>
+          </div>
+
+          <!-- 제출 버튼 -->
+          <div class="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-100">
+            <span class="text-xs font-bold text-slate-500 flex items-center gap-1">
+              <span>🔒</span> 제출된 일지 내용은 담당 교사 외에는 열람할 수 없습니다.
+            </span>
+            <button type="submit" class="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-[#0062B1] hover:bg-sky-700 active:bg-sky-800 text-white font-extrabold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer">
+              <span>✅</span>
+              <span id="submitBtnText">관리 일지 저장 및 제출하기</span>
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+    </section>
+
+
+    <!-- ===================================================================
+         [탭 2 - 교사 전용] 📊 교사 모니터링 대시보드 (미작성 확인 & 카톡 공지)
+         =================================================================== -->
+    <section id="tabSection-monitor" class="hidden space-y-6 fade-in">
+      
+      <!-- 1. 상단 날짜 컨트롤 및 개체 관리 바로가기 바 -->
+      <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div class="flex items-center gap-3 flex-wrap">
+          <div class="flex items-center gap-2 bg-slate-100 px-3 py-2 rounded-xl border border-slate-200">
+            <span class="text-sm">📅</span>
+            <label for="monitorDateInput" class="text-xs font-bold text-slate-600">모니터링 일자</label>
+            <input type="date" id="monitorDateInput" onchange="handleMonitorDateChange(this.value)" class="bg-transparent text-sm font-extrabold text-slate-900 focus:outline-none cursor-pointer">
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <button onclick="shiftMonitorDate(-1)" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 cursor-pointer">
+              ◀ 어제
+            </button>
+            <button onclick="setMonitorDateToday()" class="px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 text-xs font-bold cursor-pointer">
+              오늘
+            </button>
+            <button onclick="shiftMonitorDate(1)" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 cursor-pointer">
+              내일 ▶
+            </button>
+          </div>
+          <span id="monitorDateKorLabel" class="text-xs sm:text-sm font-bold text-slate-500"></span>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="switchMainTab('settings'); openDogModal();" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-extrabold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer">
+            <span>➕</span>
+            <span>신규 강아지 추가</span>
+          </button>
+          <button onclick="switchMainTab('settings')" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs sm:text-sm font-extrabold flex items-center gap-1.5 transition-all cursor-pointer">
+            <span>🐶</span>
+            <span>강아지 제거·배정 관리</span>
+          </button>
+          <button onclick="openDeployGuideModal()" class="px-3.5 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 text-xs sm:text-sm font-extrabold flex items-center gap-1.5 transition-all cursor-pointer">
+            <span>📱</span>
+            <span>링크 배포·운영 안내</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. 상단 4대 핵심 요약 카드 -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+        <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-500">출석·일지 대상 실습견</span>
+            <span class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-base">🐶</span>
+          </div>
+          <div class="mt-3 flex items-baseline gap-1.5">
+            <span id="statTotalDogs" class="text-2xl sm:text-3xl font-black text-slate-900">37</span>
+            <span class="text-xs font-bold text-slate-500">두 (총 <span id="statTotalSlots">74</span>타임)</span>
+          </div>
+          <p id="statExcludedSubtext" class="mt-2 text-[11px] text-slate-500 font-medium">입양·제외 개체는 설정에서 즉시 변경 가능</p>
+        </div>
+
+        <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-amber-700">☀️ 오전(아침) 작성률</span>
+            <span id="statAmBadge" class="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-50 text-amber-700">0%</span>
+          </div>
+          <div class="mt-3 flex items-baseline justify-between">
+            <div>
+              <span id="statAmDone" class="text-2xl sm:text-3xl font-black text-slate-900">0</span>
+              <span class="text-xs font-bold text-slate-400">/ <span id="statAmTotal">37</span> 완료</span>
+            </div>
+            <span id="statAmMissingText" class="text-xs font-extrabold text-rose-600">미작성 0건</span>
+          </div>
+          <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden mt-2.5">
+            <div id="statAmBar" class="h-full bg-amber-400 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-indigo-700">🌙 오후(저녁) 작성률</span>
+            <span id="statPmBadge" class="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-indigo-50 text-indigo-700">0%</span>
+          </div>
+          <div class="mt-3 flex items-baseline justify-between">
+            <div>
+              <span id="statPmDone" class="text-2xl sm:text-3xl font-black text-slate-900">0</span>
+              <span class="text-xs font-bold text-slate-400">/ <span id="statPmTotal">37</span> 완료</span>
+            </div>
+            <span id="statPmMissingText" class="text-xs font-extrabold text-rose-600">미작성 0건</span>
+          </div>
+          <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden mt-2.5">
+            <div id="statPmBar" class="h-full bg-indigo-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-orange-700">🚨 건강 주의·기타 보고</span>
+            <span class="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center text-base">🩺</span>
+          </div>
+          <div class="mt-3 flex items-baseline gap-1.5">
+            <span id="statAlertCount" class="text-2xl sm:text-3xl font-black text-orange-600">0</span>
+            <span class="text-xs font-bold text-slate-500">건 발생</span>
+          </div>
+          <p class="mt-2 text-[11px] text-slate-500 font-medium truncate">설사·혈뇨·기타 직접입력 자동 감지</p>
+        </div>
+      </div>
+
+      <!-- 3. 🚨 [미작성자 실시간 추적 및 카카오톡 독촉 공지 복사] 패널 -->
+      <div class="bg-gradient-to-br from-rose-50 via-white to-amber-50/40 rounded-2xl p-5 border-2 border-rose-200/90 shadow-xs">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-rose-200/60">
+          <div class="flex items-start gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-rose-500 text-white flex items-center justify-center text-xl shrink-0 shadow-xs">
+              🚨
+            </div>
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <h2 class="text-base sm:text-lg font-extrabold text-slate-900">미작성 학생 실시간 명단 및 단톡방 독촉 문구 복사</h2>
+                <span id="missingSummaryPill" class="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-rose-100 text-rose-700 border border-rose-300">
+                  집계 중
+                </span>
+              </div>
+              <p class="text-xs text-slate-600 mt-0.5">
+                아직 일지를 제출하지 않은 개체와 담당 학생 명단입니다. 배지를 누르면 교사가 대신 입력할 수도 있습니다.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="copyKakaoMissingNotice('all')" class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-xs sm:text-sm font-extrabold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer">
+              <span>📋</span>
+              <span>미작성자 독촉 카톡 공지 복사</span>
+            </button>
+            <button onclick="copyKakaoDailyReport()" class="px-3.5 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 text-xs sm:text-sm font-bold shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer">
+              <span>🩺</span>
+              <span>오늘 건강·특이사항 요약 복사 (교사용)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 오전 / 오후 미작성 배지 리스트 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div class="bg-white/90 rounded-xl p-3.5 border border-rose-200/80">
+            <div class="flex items-center justify-between mb-2.5">
+              <span class="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
+                <span class="text-amber-500">☀️</span> 오전(아침) 미작성 개체 및 담당자
+              </span>
+              <button onclick="copyKakaoMissingNotice('am')" class="text-[11px] font-bold text-rose-600 hover:underline cursor-pointer">
+                오전 미작성만 복사
+              </button>
+            </div>
+            <div id="missingAmBadgesContainer" class="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto pr-1">
+              <!-- JS로 렌더링 -->
+            </div>
+          </div>
+
+          <div class="bg-white/90 rounded-xl p-3.5 border border-rose-200/80">
+            <div class="flex items-center justify-between mb-2.5">
+              <span class="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
+                <span class="text-indigo-500">🌙</span> 오후(저녁) 미작성 개체 및 담당자
+              </span>
+              <button onclick="copyKakaoMissingNotice('pm')" class="text-[11px] font-bold text-rose-600 hover:underline cursor-pointer">
+                오후 미작성만 복사
+              </button>
+            </div>
+            <div id="missingPmBadgesContainer" class="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto pr-1">
+              <!-- JS로 렌더링 -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. 개체별 일일 관리 현황판 -->
+      <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
+        <div class="p-4 sm:p-5 border-b border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-slate-50/50">
+          <div>
+            <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+              <span>🐕</span>
+              <span>실습견 일일 관리 현황판 (교사 전용 열람)</span>
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">완료 카드를 클릭하면 학생이 입력한 배변·배뇨 기타 사유 및 특이사항 전문을 확인·수정할 수 있습니다.</p>
+          </div>
+
+          <!-- 검색 및 상태·구분 필터 -->
+          <div class="flex flex-wrap items-center gap-2">
+            <input type="text" id="monitorSearchInput" oninput="renderMonitorDashboard()" placeholder="강아지·품종·담당학생 검색..." class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500 w-44 sm:w-52">
+
+            <div class="inline-flex rounded-xl bg-slate-200/70 p-1 text-xs font-bold">
+              <button onclick="setMonitorFilter('all')" id="filterBtn-all" class="px-2.5 py-1.5 rounded-lg bg-white text-slate-900 shadow-2xs transition-all cursor-pointer">전체</button>
+              <button onclick="setMonitorFilter('missing')" id="filterBtn-missing" class="px-2.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition-all cursor-pointer">미작성</button>
+              <button onclick="setMonitorFilter('done')" id="filterBtn-done" class="px-2.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition-all cursor-pointer">작성완료</button>
+              <button onclick="setMonitorFilter('alert')" id="filterBtn-alert" class="px-2.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition-all cursor-pointer">🚨 주의/기타</button>
+            </div>
+
+            <select id="locationFilterSelect" onchange="renderMonitorDashboard()" class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500">
+              <option value="ALL">모든 구분</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-slate-200 bg-slate-50 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+                <th class="py-3.5 px-4">연번 / 실습견 (품종·구분)</th>
+                <th class="py-3.5 px-4">배정 담당 학생</th>
+                <th class="py-3.5 px-4">☀️ 오전(아침) 관리 기록</th>
+                <th class="py-3.5 px-4">🌙 오후(저녁) 관리 기록</th>
+                <th class="py-3.5 px-4">🩺 배변·배뇨(기타) 및 특이사항</th>
+              </tr>
+            </thead>
+            <tbody id="monitorTableBody" class="divide-y divide-slate-200/80 text-sm">
+              <!-- JS로 렌더링 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- ===================================================================
+         [탭 3 - 교사 전용] 🐶 실습견 추가·제거(삭제)·배정 관리
+         =================================================================== -->
+    <section id="tabSection-settings" class="hidden space-y-6 fade-in">
+      
+      <!-- 상단 관리 액션 바 -->
+      <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="px-2.5 py-0.5 rounded-full bg-slate-900 text-white text-[11px] font-extrabold">교사 관리자 전용</span>
+            <h2 class="text-base sm:text-lg font-extrabold text-slate-900">🐶 실습견 신규 추가 · 빠지는 개체 제거(삭제) · 담당 학생 배정</h2>
+          </div>
+          <p class="text-xs text-slate-500 mt-1">
+            새로 들어온 강아지를 추가하거나, 입양·졸업 등으로 빠지는 강아지를 목록에서 삭제(또는 일시 제외)할 수 있습니다.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="openDogModal()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-extrabold shadow-sm flex items-center gap-1.5 cursor-pointer">
+            <span>➕</span>
+            <span>신규 실습견 추가하기</span>
+          </button>
+          <button onclick="openResetConfirmModal()" class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+            <span>🔄</span>
+            <span>기본 37두 초기 명단 복원</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 검색·필터 및 교사 비밀번호 변경 바 -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="lg:col-span-7 bg-white rounded-2xl p-4 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-2 flex-1">
+            <span class="text-lg">🔍</span>
+            <input type="text" id="settingsSearchInput" oninput="renderSettingsDogsGrid()" placeholder="강아지 이름, 품종, 담당 학생 검색..." class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-sky-500">
+          </div>
+          <select id="settingsCatFilter" onchange="renderSettingsDogsGrid()" class="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-700">
+            <option value="ALL">전체 구분 보기</option>
+            <option value="훈련">훈련</option>
+            <option value="미용">미용</option>
+            <option value="입양모집">입양모집</option>
+            <option value="입양예정">입양예정</option>
+            <option value="EXCLUDED">⏸️ 일시 제외된 개체만</option>
+          </select>
+        </div>
+
+        <div class="lg:col-span-5 bg-white rounded-2xl p-4 border border-slate-200/80 flex items-center justify-between gap-3">
+          <div>
+            <span class="text-xs font-extrabold text-slate-800 block">🔑 교사 비밀번호(PIN) 변경</span>
+            <span class="text-[11px] text-slate-500">현재 비밀번호: <strong id="currentPinDisplay">1974</strong></span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <input type="password" id="newTeacherPinInput" placeholder="새 PIN 입력" class="w-28 px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-extrabold text-center">
+            <button onclick="updateTeacherPin()" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold cursor-pointer">변경</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 등록된 실습견 카드 그리드 -->
+      <div id="settingsDogCardsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- JS로 렌더링 -->
+      </div>
+
+    </section>
+
+
+    <!-- ===================================================================
+         [탭 4 - 교사 전용] 📋 전체 일지 열람 & 엑셀(CSV) 다운로드
+         =================================================================== -->
+    <section id="tabSection-history" class="hidden space-y-5 fade-in">
+      
+      <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-base sm:text-lg font-extrabold text-slate-900">📋 전체 제출 일지 열람 및 엑셀(CSV) 다운로드 (교사 전용)</h2>
+          <p class="text-xs text-slate-500 mt-0.5">학생들이 제출한 모든 기록(배변·배뇨 기타 사유 및 특이사항 포함)을 조회하고 엑셀 파일로 내려받습니다.</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <select id="historyDogFilter" onchange="renderHistoryTable()" class="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-700">
+            <option value="ALL">모든 실습견 보기</option>
+          </select>
+
+          <select id="historyPeriodFilter" onchange="renderHistoryTable()" class="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-700">
+            <option value="ALL">오전 + 오후 전체</option>
+            <option value="AM">☀️ 오전(아침) 기록만</option>
+            <option value="PM">🌙 오후(저녁) 기록만</option>
+          </select>
+
+          <select id="historyHealthFilter" onchange="renderHistoryTable()" class="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-700">
+            <option value="ALL">모든 건강 상태</option>
+            <option value="ALERT">🚨 주의/기타 직접입력 기록만</option>
+          </select>
+
+          <button onclick="exportLogsToCSV()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-xs flex items-center gap-1.5 cursor-pointer">
+            <span>📥</span>
+            <span>엑셀(CSV) 다운로드</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-slate-200 bg-slate-50 text-[11px] font-extrabold text-slate-500 uppercase">
+                <th class="py-3.5 px-4">일자 / 시간대</th>
+                <th class="py-3.5 px-4">실습견 (품종·구분)</th>
+                <th class="py-3.5 px-4">몸무게 / 사료량</th>
+                <th class="py-3.5 px-4">산책 시간</th>
+                <th class="py-3.5 px-4">배변 / 배뇨 (기타 상세)</th>
+                <th class="py-3.5 px-4">처치 항목 및 특이사항 메모</th>
+                <th class="py-3.5 px-4">작성 학생 (제출시각)</th>
+                <th class="py-3.5 px-4 text-right">교사 관리</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody" class="divide-y divide-slate-200/80 text-xs sm:text-sm">
+              <!-- JS로 렌더링 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- ===================================================================
+       모달 1: 관리 일지 상세 보기 모달 (교사 전용)
+       =================================================================== -->
+  <div id="logDetailModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 fade-in">
+      <div class="bg-slate-900 px-6 py-4 text-white flex items-center justify-between">
+        <div>
+          <span id="modalLogPeriodBadge" class="px-2 py-0.5 rounded bg-amber-400 text-slate-950 text-[11px] font-extrabold">오전 관리</span>
+          <h3 id="modalLogTitle" class="text-base font-extrabold mt-1">일지 상세 내역</h3>
+        </div>
+        <button onclick="closeLogDetailModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white font-bold cursor-pointer">✕</button>
+      </div>
+      <div id="modalLogBody" class="p-6 space-y-4 text-sm">
+        <!-- JS로 렌더링 -->
+      </div>
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+        <button id="modalDeleteLogBtn" class="px-3.5 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 cursor-pointer">
+          🗑️ 이 일지 기록 삭제
+        </button>
+        <div class="flex items-center gap-2">
+          <button onclick="closeLogDetailModal()" class="px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 text-xs font-bold cursor-pointer">닫기</button>
+          <button id="modalEditLogBtn" class="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-extrabold cursor-pointer">✏️ 내용 수정하기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===================================================================
+       모달 2: 실습견 신규 추가 / 수정 모달 (교사 전용)
+       =================================================================== -->
+  <div id="dogConfigModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 fade-in">
+      <div class="bg-[#0062B1] px-6 py-4 text-white flex items-center justify-between">
+        <h3 id="dogModalHeaderTitle" class="text-base font-extrabold">🐾 실습견 및 담당 학생 배정 설정</h3>
+        <button onclick="closeDogModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white font-bold cursor-pointer">✕</button>
+      </div>
+
+      <form id="dogConfigForm" onsubmit="handleDogConfigSubmit(event)" class="p-6 space-y-4 text-sm max-h-[80vh] overflow-y-auto">
+        <input type="hidden" id="configDogId" value="">
+
+        <div class="grid grid-cols-12 gap-3">
+          <div class="col-span-3">
+            <label class="block text-xs font-extrabold text-slate-700 mb-1">연번</label>
+            <input type="number" id="configDogNo" required placeholder="38" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold">
+          </div>
+          <div class="col-span-6">
+            <label class="block text-xs font-extrabold text-slate-700 mb-1">개체명 (강아지 이름) *</label>
+            <input type="text" id="configDogName" required placeholder="예: 해피" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-bold">
+          </div>
+          <div class="col-span-3">
+            <label class="block text-xs font-extrabold text-slate-700 mb-1">아이콘</label>
+            <select id="configDogEmoji" class="w-full px-2 py-2 rounded-xl border border-slate-300 font-bold">
+              <option value="🦮">🦮 리트리버</option>
+              <option value="🐕">🐕 보더콜리/중대형</option>
+              <option value="🐩">🐩 푸들/비숑</option>
+              <option value="🐻‍❄️">🐻‍❄️ 백곰/포메</option>
+              <option value="🐶">🐶 코기/코커/기타</option>
+              <option value="🩹">🩹 집중케어</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-extrabold text-slate-700 mb-1">품종 *</label>
+            <input type="text" id="configDogBreed" required placeholder="예: 보더콜리, 푸들" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold">
+          </div>
+          <div>
+            <label class="block text-xs font-extrabold text-slate-700 mb-1">관리 구분 *</label>
+            <select id="configDogLocation" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold">
+              <option value="훈련">훈련</option>
+              <option value="미용">미용</option>
+              <option value="입양모집">입양모집</option>
+              <option value="입양예정">입양예정</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-extrabold text-slate-700 mb-1">기준 몸무게 (kg)</label>
+            <input type="number" step="0.1" id="configDogWeight" required placeholder="예: 12.0" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold">
+          </div>
+          <div>
+            <label class="block text-xs font-extrabold text-slate-700 mb-1">1회 권장 사료량 (g)</label>
+            <input type="number" step="5" id="configDogFeed" required placeholder="예: 120" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+          <div>
+            <label class="block text-xs font-extrabold text-sky-900 mb-1">담당 학생 1 *</label>
+            <input type="text" id="configDogPrimaryStudent" required placeholder="예: 김민경" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-bold">
+          </div>
+          <div>
+            <label class="block text-xs font-extrabold text-slate-700 mb-1">담당 학생 2</label>
+            <input type="text" id="configDogSecondaryStudent" placeholder="예: 김나은" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-semibold">
+          </div>
+          <div>
+            <label class="block text-xs font-extrabold text-slate-700 mb-1">담당 학생 3 (선택)</label>
+            <input type="text" id="configDogThirdStudent" placeholder="예: 유현지" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-semibold">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-extrabold text-slate-700 mb-1">🚨 개체별 필수 관리 주의사항 (산책·넥카라·투약 등)</label>
+          <textarea id="configDogCaution" rows="3" required placeholder="예: 기관지 약함(하네스 필수, 챙질X), 넥카라 5칸 필수 착용, 유산균 1포 급여" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium leading-relaxed"></textarea>
+        </div>
+
+        <div class="p-3 rounded-xl bg-amber-50 border border-amber-200">
+          <label class="flex items-center gap-2 cursor-pointer text-xs font-extrabold text-amber-950">
+            <input type="checkbox" id="configDogExcluded" class="rounded text-amber-600 w-4 h-4">
+            <span>⏸️ 일시적으로 출석·미작성 집계에서 제외하기 (수술 격리·외부 입원 등)</span>
+          </label>
+        </div>
+
+        <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
+          <button type="button" onclick="closeDogModal()" class="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 text-xs font-bold cursor-pointer">취소</button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-[#0062B1] hover:bg-sky-700 text-white text-xs font-extrabold shadow-sm cursor-pointer">저장하기</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ===================================================================
+       모달 3: 🗑️ 실습견 개체 제거(삭제) 확인 모달 (교사 전용)
+       =================================================================== -->
+  <div id="deleteDogConfirmModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200 fade-in">
+      <div class="bg-rose-600 px-6 py-4 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🗑️</span>
+          <h3 class="text-base font-extrabold">실습견 목록에서 제거(삭제) 확인</h3>
+        </div>
+        <button onclick="closeDeleteDogConfirmModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white font-bold cursor-pointer">✕</button>
+      </div>
+      <div class="p-6 space-y-3 text-sm text-slate-700">
+        <p class="font-extrabold text-slate-900 text-base" id="deleteConfirmDogTitle">정말 이 강아지를 목록에서 제거하시겠습니까?</p>
+        <p class="text-xs text-slate-600 leading-relaxed">
+          • 입양 완료, 졸업 등으로 학교에서 완전히 빠지는 개체일 경우 <strong>[완전 제거(삭제)]</strong>를 눌러주세요.<br>
+          • 수술 후 회복이나 일시 휴식처럼 당분간만 출석/일지에서 빼두려면 삭제 대신 <strong>[⏸️ 일시 제외로 전환]</strong>을 권장합니다.
+        </p>
+      </div>
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-end gap-2">
+        <button onclick="closeDeleteDogConfirmModal()" class="px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 text-xs font-bold cursor-pointer">취소</button>
+        <button id="pauseInsteadOfDeleteBtn" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold cursor-pointer">⏸️ 일시 제외로 전환</button>
+        <button id="confirmHardDeleteDogBtn" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold cursor-pointer">🗑️ 완전 제거(삭제)</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===================================================================
+       모달 4: 🔒 교사 관리자 로그인 모달
+       =================================================================== -->
+  <div id="teacherLoginModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-slate-200 fade-in">
+      <div class="bg-slate-900 px-6 py-4 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🔒</span>
+          <h3 class="text-base font-extrabold">교사 관리자 로그인</h3>
+        </div>
+        <button onclick="closeTeacherLoginModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white font-bold cursor-pointer">✕</button>
+      </div>
+
+      <form onsubmit="handleTeacherLoginSubmit(event)" class="p-6 space-y-4">
+        <p class="text-xs text-slate-600 leading-relaxed">
+          제출된 학생 일지 열람, 미작성자 독촉, <strong>신규 강아지 추가 및 빠지는 개체 삭제</strong>는 담당 선생님 전용 메뉴입니다.
+        </p>
+
+        <div>
+          <label class="block text-xs font-extrabold text-slate-700 mb-1.5">교사 비밀번호 (초기 기본값: 1974)</label>
+          <input type="password" id="teacherPinInput" required placeholder="비밀번호 입력" class="w-full px-4 py-3 rounded-2xl border-2 border-slate-300 focus:border-sky-600 text-center text-lg font-black tracking-widest focus:outline-none">
+          <p id="teacherLoginErrorMsg" class="hidden text-xs font-bold text-rose-600 mt-1.5 text-center">비밀번호가 일치하지 않습니다.</p>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button type="button" onclick="closeTeacherLoginModal()" class="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 text-xs font-bold cursor-pointer">취소</button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-[#0062B1] hover:bg-sky-700 text-white text-xs font-extrabold shadow-sm cursor-pointer">교사 모드 잠금 해제</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ===================================================================
+       모달 5: 🚀 학생 링크 배포 및 프로그램처럼 운영하는 방법 안내 모달
+       =================================================================== -->
+  <div id="deployGuideModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl border border-slate-200 fade-in">
+      <div class="bg-gradient-to-r from-slate-900 to-sky-900 px-6 py-4 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl">🚀</span>
+          <div>
+            <h3 class="text-base font-extrabold">학생 링크 배포 및 실제 앱처럼 운영하는 방법</h3>
+            <p class="text-xs text-sky-200">한국펫고등학교 실습견 관리 프로그램 운영 가이드</p>
+          </div>
+        </div>
+        <button onclick="closeDeployGuideModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white font-bold cursor-pointer">✕</button>
+      </div>
+
+      <div class="p-6 space-y-4 text-xs sm:text-sm text-slate-700 max-h-[78vh] overflow-y-auto leading-relaxed">
+        <div class="p-4 rounded-2xl bg-sky-50 border border-sky-200 space-y-1.5">
+          <h4 class="font-extrabold text-sky-950 text-sm">1. 학생들에게 바로 링크로 공유하는 방법</h4>
+          <p class="text-slate-700 font-medium">
+            • 이 코드는 외부 이미지 없이 순수 그래픽(SVG)과 코드로만 이루어진 <strong>단 1개의 HTML 파일</strong>입니다.<br>
+            • 파일을 저장한 뒤 무료 호스팅인 <strong>Netlify Drop (app.netlify.com/drop)</strong> 또는 <strong>GitHub Pages</strong>에 올리면 1분 만에 학교 전용 인터넷 주소(URL)가 생성되어 단톡방에 공유하실 수 있습니다.
+          </p>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+          <h4 class="font-extrabold text-slate-900 text-sm">2. 스마트폰 홈 화면에 '전용 앱'처럼 설치하기</h4>
+          <p class="font-medium">
+            • 학생들이 공유받은 링크를 크롬이나 사파리로 연 뒤 메뉴에서 <strong>[홈 화면에 추가]</strong>를 누르면 스마트폰 바탕화면에 아이콘이 생성되어 일반 앱처럼 터치 한 번으로 바로 실행됩니다.
+          </p>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-1">
+          <h4 class="font-extrabold text-amber-950 text-sm">3. 신규 강아지 추가 & 빠지는 강아지 제거</h4>
+          <p class="text-amber-900 font-medium">
+            • 교사 로그인(초기 비밀번호 <code>1974</code>) 후 상단 <strong>[🐶 실습견 추가·제거·배정]</strong> 탭에서 언제든 새로운 실습견을 등록하거나 입양·졸업 개체를 삭제할 수 있습니다.
+          </p>
+        </div>
+      </div>
+
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+        <button onclick="closeDeployGuideModal()" class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-extrabold cursor-pointer">확인했습니다</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===================================================================
+       모달 6: 표준 37두 명단 초기화 확인 모달
+       =================================================================== -->
+  <div id="resetConfirmModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-slate-200 fade-in">
+      <div class="bg-slate-900 px-6 py-4 text-white flex items-center justify-between">
+        <h3 class="text-sm font-extrabold">🔄 기본 37두 명단 복원 확인</h3>
+        <button onclick="closeResetConfirmModal()" class="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white text-xs cursor-pointer">✕</button>
+      </div>
+      <div class="p-5 text-xs text-slate-600 leading-relaxed">
+        학교 기본 배정표(1번 라온 ~ 37번 불곰) 상태로 실습견 명단을 복원하시겠습니까? (기존 작성된 일지 기록은 유지됩니다.)
+      </div>
+      <div class="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+        <button onclick="closeResetConfirmModal()" class="px-3.5 py-2 rounded-xl border border-slate-300 bg-white text-xs font-bold cursor-pointer">취소</button>
+        <button onclick="confirmResetToSchool37Dogs()" class="px-4 py-2 rounded-xl bg-sky-600 text-white text-xs font-extrabold cursor-pointer">복원 실행</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Firebase 연동 및 애플리케이션 로직 -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // 오늘 날짜 문자열 (YYYY-MM-DD)
+    function getLocalTodayStr() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    const TODAY_STR = getLocalTodayStr();
+
+    // =========================================================================
+    // 한국펫고등학교 실제 37두 실습견 및 담당 학생 배정 데이터
+    // =========================================================================
+    const RAW_37_DOGS = [
+      { no: 1, id: 'dog-01', name: '라온', breed: '골든리트리버', location: '입양모집', emoji: '🦮', baseWeight: 26.5, recommendedFeed: 220, primaryStudent: '조현지', secondaryStudent: '김규리', thirdStudent: '', caution: '산책 후 물 급여 및 눈곱·입·발·생식기 기본 타월링', excluded: false },
+      { no: 2, id: 'dog-02', name: '봉화', breed: '골든리트리버', location: '훈련', emoji: '🦮', baseWeight: 25.0, recommendedFeed: 200, primaryStudent: '김민경', secondaryStudent: '김나은', thirdStudent: '', caution: '사료 200g+하늘색 유산균 1포(식후 눈물 닦기), 기관지 약함(챙질 절대X), 고양이똥 등 이물질 섭취 주의, 넥카라 5번째 칸 필수 착용', excluded: false },
+      { no: 3, id: 'dog-03', name: '연두', breed: '레브라도리트리버', location: '훈련', emoji: '🦮', baseWeight: 24.0, recommendedFeed: 210, primaryStudent: '류하민', secondaryStudent: '김보미', thirdStudent: '', caution: '산책 시 이물질 섭취 주의, 산책 후 발·생식기 꼼꼼히 타월링', excluded: false },
+      { no: 4, id: 'dog-04', name: '태리', breed: '그레이하운드', location: '훈련', emoji: '🐕', baseWeight: 21.0, recommendedFeed: 190, primaryStudent: '김영준', secondaryStudent: '김보민', thirdStudent: '', caution: '산책 시 리드줄 통제 주의 및 산책 후 물 급여·기본 타월링', excluded: false },
+      { no: 5, id: 'dog-05', name: '깡철', breed: '보더콜리', location: '훈련', emoji: '🐕', baseWeight: 16.5, recommendedFeed: 160, primaryStudent: '김혜민', secondaryStudent: '김진현', thirdStudent: '', caution: '산책 후 물 급여 및 발·배·생식기 기본 타월링 철저', excluded: false },
+      { no: 6, id: 'dog-06', name: '도키', breed: '보더콜리', location: '훈련', emoji: '🐕', baseWeight: 16.0, recommendedFeed: 160, primaryStudent: '송승찬', secondaryStudent: '강유건', thirdStudent: '', caution: '산책 후 물 급여 및 눈·입·발·생식기 타월링', excluded: false },
+      { no: 7, id: 'dog-07', name: '버디', breed: '보더콜리', location: '훈련', emoji: '🐕', baseWeight: 15.8, recommendedFeed: 150, primaryStudent: '이선미', secondaryStudent: '박재희', thirdStudent: '', caution: '산책 후 물 급여 및 기본 위생 타월링 실시', excluded: false },
+      { no: 8, id: 'dog-08', name: '사케', breed: '보더콜리', location: '훈련', emoji: '🐕', baseWeight: 16.2, recommendedFeed: 160, primaryStudent: '박덕우', secondaryStudent: '박현지', thirdStudent: '', caution: '산책 후 물 급여 및 기본 위생 타월링 실시', excluded: false },
+      { no: 9, id: 'dog-09', name: '송이', breed: '보더콜리', location: '훈련', emoji: '🐕', baseWeight: 14.5, recommendedFeed: 140, primaryStudent: '한지율', secondaryStudent: '원예담', thirdStudent: '', caution: '산책 후 물 급여 및 눈·입·발·생식기 타월링', excluded: false },
+      { no: 10, id: 'dog-10', name: '아키', breed: '보더콜리', location: '훈련', emoji: '🐕', baseWeight: 15.5, recommendedFeed: 150, primaryStudent: '박채원', secondaryStudent: '김연아', thirdStudent: '', caution: '산책 후 물 급여 및 기본 위생 타월링 실시', excluded: false },
+      { no: 11, id: 'dog-11', name: '에반', breed: '보더콜리', location: '훈련', emoji: '🐕', baseWeight: 16.8, recommendedFeed: 160, primaryStudent: '손예나', secondaryStudent: '이다은', thirdStudent: '', caution: '산책 후 물 급여 및 기본 위생 타월링 실시', excluded: false },
+      { no: 12, id: 'dog-12', name: '제니', breed: '보더콜리', location: '훈련', emoji: '🐕', baseWeight: 14.2, recommendedFeed: 140, primaryStudent: '송민지', secondaryStudent: '임태호', thirdStudent: '', caution: '산책 후 물 급여 및 기본 위생 타월링 실시', excluded: false },
+      { no: 13, id: 'dog-13', name: '차차', breed: '보더콜리', location: '입양예정', emoji: '🐕', baseWeight: 15.0, recommendedFeed: 150, primaryStudent: '서보은', secondaryStudent: '심혁', thirdStudent: '', caution: '[입양예정 개체] 컨디션 및 위생 상태 꼼꼼히 확인, 산책 후 타월링', excluded: false },
+      { no: 14, id: 'dog-14', name: '칸', breed: '보더콜리', location: '훈련', emoji: '🐕', baseWeight: 17.2, recommendedFeed: 170, primaryStudent: '조아연', secondaryStudent: '전인덕', thirdStudent: '', caution: '산책 후 물 급여 및 기본 위생 타월링 실시', excluded: false },
+      { no: 15, id: 'dog-15', name: '켈리', breed: '보더콜리', location: '훈련', emoji: '🩹', baseWeight: 14.8, recommendedFeed: 140, primaryStudent: '유하람', secondaryStudent: '차다윤', thirdStudent: '', caution: '[수술 후 회복 집중관리] 수의보조실 격리(타견 접촉 및 불필요한 터치 금지), 수술부위 1일 1회 포비돈 소독, 약 1일 2회, 설사 시 지사제 7.5ml', excluded: false },
+      { no: 16, id: 'dog-16', name: '트랙', breed: '보더콜리', location: '훈련', emoji: '🐕', baseWeight: 16.0, recommendedFeed: 160, primaryStudent: '윤희서', secondaryStudent: '최다예', thirdStudent: '', caution: '산책 후 물 급여 및 기본 위생 타월링 실시', excluded: false },
+      { no: 17, id: 'dog-17', name: '누룽지', breed: '비숑 프리제', location: '미용', emoji: '🐩', baseWeight: 5.4, recommendedFeed: 55, primaryStudent: '이윤서', secondaryStudent: '최우녕', thirdStudent: '', caution: '산책 및 식후 눈물·입 주변 변색 방지 타월링 필수', excluded: false },
+      { no: 18, id: 'dog-18', name: '마요', breed: '비숑프리제', location: '훈련', emoji: '🐩', baseWeight: 5.2, recommendedFeed: 55, primaryStudent: '나현서', secondaryStudent: '이민호', thirdStudent: '', caution: '산책 후 눈곱·입·발·생식기 타월링 및 습기 완전 제거', excluded: false },
+      { no: 19, id: 'dog-19', name: '모찌', breed: '비숑프리제', location: '미용', emoji: '🐩', baseWeight: 5.0, recommendedFeed: 50, primaryStudent: '박서현', secondaryStudent: '김가윤', thirdStudent: '', caution: '산책 및 식후 눈물·입·생식기 타월링 꼼꼼히 실시', excluded: false },
+      { no: 20, id: 'dog-20', name: '백곰', breed: '비숑프리제', location: '훈련', emoji: '🐻‍❄️', baseWeight: 5.8, recommendedFeed: 40, primaryStudent: '전다솔', secondaryStudent: '김민지(3)', thirdStudent: '', caution: '사료 40g, 하네스 및 넥카라 필수 착용(챙질 절대X), 바닥 이물질 섭취 주의, 타견 으르렁거리면 접근 금지, 눈물·입·생식기 타월링', excluded: false },
+      { no: 21, id: 'dog-21', name: '지젤', breed: '비숑프리제', location: '미용', emoji: '🐩', baseWeight: 4.9, recommendedFeed: 50, primaryStudent: '전조민', secondaryStudent: '김민지(4)', thirdStudent: '', caution: '산책 및 식후 눈물·입·생식기 타월링 꼼꼼히 실시', excluded: false },
+      { no: 22, id: 'dog-22', name: '쿤', breed: '비숑프리제', location: '미용', emoji: '🐩', baseWeight: 5.6, recommendedFeed: 55, primaryStudent: '이가민', secondaryStudent: '김수현', thirdStudent: '', caution: '산책 및 식후 눈물·입·생식기 타월링 꼼꼼히 실시', excluded: false },
+      { no: 23, id: 'dog-23', name: '둘리', breed: '코커스파니엘', location: '훈련', emoji: '🐶', baseWeight: 11.2, recommendedFeed: 110, primaryStudent: '김나연', secondaryStudent: '장고은', thirdStudent: '', caution: '귀 주변 위생 및 산책 후 발·입·생식기 타월링 확인', excluded: false },
+      { no: 24, id: 'dog-24', name: '패니', breed: '웰시코기', location: '훈련', emoji: '🐶', baseWeight: 11.8, recommendedFeed: 115, primaryStudent: '김주원', secondaryStudent: '김예진', thirdStudent: '', caution: '산책 후 배·발·생식기 타월링 및 적정 사료량 준수', excluded: false },
+      { no: 25, id: 'dog-25', name: '그레이스', breed: '푸들', location: '미용', emoji: '🐩', baseWeight: 4.5, recommendedFeed: 45, primaryStudent: '김태은', secondaryStudent: '김지민', thirdStudent: '', caution: '산책 후 물 급여 및 눈곱·입·발·생식기 타월링', excluded: false },
+      { no: 26, id: 'dog-26', name: '로니', breed: '푸들', location: '훈련', emoji: '🐩', baseWeight: 4.8, recommendedFeed: 50, primaryStudent: '김민지', secondaryStudent: '김태림', thirdStudent: '', caution: '산책 후 물 급여 및 눈곱·입·발·생식기 타월링', excluded: false },
+      { no: 27, id: 'dog-27', name: '마틸다', breed: '푸들', location: '미용', emoji: '🐩', baseWeight: 4.3, recommendedFeed: 45, primaryStudent: '정하은', secondaryStudent: '김현채', thirdStudent: '', caution: '산책 후 물 급여 및 눈곱·입·발·생식기 타월링', excluded: false },
+      { no: 28, id: 'dog-28', name: '먼지', breed: '푸들', location: '미용', emoji: '🐩', baseWeight: 4.6, recommendedFeed: 45, primaryStudent: '박민엽', secondaryStudent: '성주영', thirdStudent: '', caution: '산책 후 물 급여 및 눈곱·입·발·생식기 타월링', excluded: false },
+      { no: 29, id: 'dog-29', name: '벨라', breed: '푸들', location: '입양모집', emoji: '🐩', baseWeight: 5.1, recommendedFeed: 50, primaryStudent: '홍준희', secondaryStudent: '성주은', thirdStudent: '', caution: '산책 후 물 급여 및 눈곱·입·발·생식기 타월링 철저', excluded: false },
+      { no: 30, id: 'dog-30', name: '제트', breed: '푸들', location: '미용', emoji: '🐩', baseWeight: 4.9, recommendedFeed: 50, primaryStudent: '백지윤', secondaryStudent: '신은주', thirdStudent: '', caution: '산책 후 물 급여 및 눈곱·입·발·생식기 타월링', excluded: false },
+      { no: 31, id: 'dog-31', name: '찰리', breed: '푸들', location: '미용', emoji: '🐩', baseWeight: 4.7, recommendedFeed: 45, primaryStudent: '서보민', secondaryStudent: '윤소윤', thirdStudent: '', caution: '산책 후 물 급여 및 눈곱·입·발·생식기 타월링', excluded: false },
+      { no: 32, id: 'dog-32', name: '티라노', breed: '푸들', location: '미용', emoji: '🐩', baseWeight: 5.2, recommendedFeed: 50, primaryStudent: '심주연', secondaryStudent: '조현우', thirdStudent: '', caution: '산책 후 물 급여 및 눈곱·입·발·생식기 타월링', excluded: false },
+      { no: 33, id: 'dog-33', name: '푸', breed: '푸들', location: '훈련', emoji: '🐩', baseWeight: 5.0, recommendedFeed: 50, primaryStudent: '오지승', secondaryStudent: '이은수', thirdStudent: '', caution: '산책 후 물 급여 및 눈곱·입·발·생식기 타월링', excluded: false },
+      { no: 34, id: 'dog-34', name: '페퍼', breed: '푸들', location: '훈련', emoji: '🐩', baseWeight: 4.8, recommendedFeed: 50, primaryStudent: '윤나은', secondaryStudent: '정유나', thirdStudent: '', caution: '산책 후 물 급여 및 눈곱·입·발·생식기 타월링', excluded: false },
+      { no: 35, id: 'dog-35', name: '보리', breed: '스탠다드 푸들', location: '훈련', emoji: '🐩', baseWeight: 19.5, recommendedFeed: 190, primaryStudent: '이세빈', secondaryStudent: '하은재', thirdStudent: '', caution: '대형견 산책 시 리드줄 제어 주의, 산책 후 물 급여 및 타월링', excluded: false },
+      { no: 36, id: 'dog-36', name: '테라', breed: '마리노이즈(믹스)', location: '훈련', emoji: '🐕', baseWeight: 22.0, recommendedFeed: 200, primaryStudent: '남소은', secondaryStudent: '홍성은', thirdStudent: '유현지', caution: '산책 시 주변 자극 및 통제 주의, 산책 후 물 급여 및 기본 타월링', excluded: false },
+      { no: 37, id: 'dog-37', name: '불곰', breed: '포메라니안', location: '훈련', emoji: '🐻‍❄️', baseWeight: 3.6, recommendedFeed: 35, primaryStudent: '신예린', secondaryStudent: '신채현', thirdStudent: '', caution: '소형견 기관지 보호(하네스 착용 권장, 챙질 금지), 산책 후 발·눈물 타월링', excluded: false }
+    ];
+
+    // 초기 샘플 일지
+    function createInitialSampleLogs(dateStr) {
+      return [
+        {
+          id: `${dateStr}_AM_dog-02`,
+          date: dateStr,
+          period: 'AM',
+          dogId: 'dog-02',
+          writer: '김민경',
+          weight: 25.1,
+          feedAmount: 200,
+          feedStatus: '완식',
+          walkSkipped: false,
+          walkStart: '08:10',
+          walkEnd: '08:35',
+          walkMinutes: 25,
+          feces: '정상',
+          fecesCustom: '',
+          urine: '정상',
+          urineCustom: '',
+          checkItems: ['물 급여 완료', '기본 타월링(눈·입·발·생식기)', '필수 약/유산균 급여', '넥카라 착용 확인'],
+          notes: '하늘색 유산균 1포 사료와 함께 완식함. 식후 눈물 닦아주고 넥카라 5번째 칸 착용 확인 완료.',
+          submittedAt: '08:42'
+        },
+        {
+          id: `${dateStr}_AM_dog-15`,
+          date: dateStr,
+          period: 'AM',
+          dogId: 'dog-15',
+          writer: '유하람',
+          weight: 14.8,
+          feedAmount: 140,
+          feedStatus: '완식',
+          walkSkipped: true,
+          walkStart: '',
+          walkEnd: '',
+          walkMinutes: 0,
+          feces: '기타(직접입력)',
+          fecesCustom: '처음엔 형태가 있었으나 끝부분이 약간 무른 변 (지사제 급여 전 관찰 중)',
+          urine: '정상',
+          urineCustom: '',
+          checkItems: ['물 급여 완료', '필수 약/유산균 급여', '넥카라 착용 확인', '환부 소독/연고/보습제'],
+          notes: '수의보조실 격리 상태에서 수술 부위 포비돈 소독 1회 및 아침 내복약 급여 완료.',
+          submittedAt: '08:48'
+        },
+        {
+          id: `${dateStr}_AM_dog-20`,
+          date: dateStr,
+          period: 'AM',
+          dogId: 'dog-20',
+          writer: '전다솔',
+          weight: 5.8,
+          feedAmount: 40,
+          feedStatus: '완식',
+          walkSkipped: false,
+          walkStart: '08:15',
+          walkEnd: '08:35',
+          walkMinutes: 20,
+          feces: '정상',
+          fecesCustom: '',
+          urine: '정상',
+          urineCustom: '',
+          checkItems: ['물 급여 완료', '기본 타월링(눈·입·발·생식기)', '넥카라 착용 확인'],
+          notes: '하네스 착용 후 산책 완료. 넥카라 착용 및 눈물·입·생식기 타월링 완료.',
+          submittedAt: '08:51'
+        }
+      ];
+    }
+
+    // 전역 상태
+    const state = {
+      isTeacher: false,
+      teacherPin: '1974',
+      mainTab: 'write', // 기본값: 학생 작성 화면
+      monitorDate: TODAY_STR,
+      monitorFilter: 'all',
+      formCategoryFilter: 'ALL',
+      dogs: JSON.parse(JSON.stringify(RAW_37_DOGS)),
+      logs: [...createInitialSampleLogs(TODAY_STR)],
+      // 작성 폼 상태
+      formPeriod: 'AM',
+      formFeedStatus: '완식',
+      formFeces: '정상',
+      formUrine: '정상',
+      pendingDeleteDogId: null,
+      // Firebase 상태
+      useFirebase: false,
+      db: null,
+      auth: null,
+      currentUser: null,
+      appId: typeof __app_id !== 'undefined' ? __app_id : 'korea-pet-high-care-app'
+    };
+
+    // 유틸리티
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function showToast(msg, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const el = document.createElement('div');
+      const bgClass = type === 'error'
+        ? 'bg-rose-600 text-white'
+        : 'bg-slate-900 text-white';
+      el.className = `${bgClass} px-4 py-3 rounded-2xl shadow-lg text-xs sm:text-sm font-extrabold flex items-center gap-2 fade-in pointer-events-auto`;
+      el.innerHTML = `<span>${type === 'error' ? '⚠️' : '✅'}</span><span>${escapeHtml(msg)}</span>`;
+      container.appendChild(el);
+      setTimeout(() => {
+        el.remove();
+      }, 3200);
+    }
+
+    function formatKoreanDateLabel(dateStr) {
+      if (!dateStr) return '';
+      const parts = dateStr.split('-');
+      if (parts.length !== 3) return dateStr;
+      const dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      const days = ['일', '월', '화', '수', '목', '금', '토'];
+      return `${Number(parts[0])}년 ${Number(parts[1])}월 ${Number(parts[2])}일 (${days[dt.getDay()]}요일)`;
+    }
+
+    function formatStudentsList(dog) {
+      return [dog.primaryStudent, dog.secondaryStudent, dog.thirdStudent].filter(Boolean).join(', ');
+    }
+
+    // 배변/배뇨/특이사항 이상 징후 또는 기타 직접입력 여부 판별
+    function isLogAbnormal(log) {
+      if (!log) return false;
+      if (log.feces && log.feces !== '정상' && log.feces !== '배변안함') return true;
+      if (log.urine && log.urine !== '정상' && log.urine !== '배뇨안함') return true;
+      if (log.fecesCustom && log.fecesCustom.trim() !== '') return true;
+      if (log.urineCustom && log.urineCustom.trim() !== '') return true;
+      if (log.feedStatus === '거부' || log.feedStatus === '남김') return true;
+      if ((log.checkItems || []).some(item => item.includes('주의') || item.includes('기타'))) return true;
+      return false;
+    }
+
+    function formatFecesDisplay(log) {
+      if (!log) return '-';
+      const base = log.feces || '정상';
+      const custom = (log.fecesCustom || '').trim();
+      if (custom) {
+        return base === '기타(직접입력)' ? `기타: ${custom}` : `${base} (${custom})`;
+      }
+      return base;
+    }
+
+    function formatUrineDisplay(log) {
+      if (!log) return '-';
+      const base = log.urine || '정상';
+      const custom = (log.urineCustom || '').trim();
+      if (custom) {
+        return base === '기타(직접입력)' ? `기타: ${custom}` : `${base} (${custom})`;
+      }
+      return base;
+    }
+
+    // =========================================================================
+    // Firebase 초기화 (환경변수 존재 시 자동 실시간 연동, 없을 시 인메모리 즉시 작동)
+    // =========================================================================
+    async function initCloudSync() {
+      try {
+        if (typeof __firebase_config === 'undefined' || !__firebase_config) {
+          return;
+        }
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        state.auth = auth;
+        state.db = db;
+
+        // RULE 3: Auth Before Queries
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+
+        onAuthStateChanged(auth, (user) => {
+          state.currentUser = user;
+          if (user) {
+            state.useFirebase = true;
+            setupFirestoreListeners();
+          }
+        });
+      } catch (e) {
+        console.warn('로컬 세션 모드로 동작합니다:', e);
+      }
+    }
+
+    function setupFirestoreListeners() {
+      if (!state.currentUser || !state.db) return;
+      const db = state.db;
+      const dogsColRef = collection(db, 'artifacts', state.appId, 'public', 'data', 'dogs');
+      const logsColRef = collection(db, 'artifacts', state.appId, 'public', 'data', 'care_logs');
+
+      onSnapshot(
+        dogsColRef,
+        async (snapshot) => {
+          if (!state.currentUser) return;
+          if (snapshot.empty) {
+            for (const d of RAW_37_DOGS) {
+              await setDoc(doc(db, 'artifacts', state.appId, 'public', 'data', 'dogs', d.id), d);
+            }
+          } else {
+            const loadedDogs = [];
+            snapshot.forEach((docSnap) => {
+              const data = docSnap.data();
+              if (data && data.id) loadedDogs.push(data);
+            });
+            if (loadedDogs.length > 0) {
+              loadedDogs.sort((a, b) => (a.no || 999) - (b.no || 999));
+              state.dogs = loadedDogs;
+              refreshAllViews();
+            }
+          }
+        },
+        (err) => console.error('실습견 구독 오류:', err)
+      );
+
+      onSnapshot(
+        logsColRef,
+        (snapshot) => {
+          if (!state.currentUser) return;
+          if (!snapshot.empty) {
+            const loadedLogs = [];
+            snapshot.forEach((docSnap) => loadedLogs.push(docSnap.data()));
+            state.logs = loadedLogs;
+            refreshAllViews();
+          }
+        },
+        (err) => console.error('일지 구독 오류:', err)
+      );
+    }
+
+    async function saveDogRecord(dogObj) {
+      const idx = state.dogs.findIndex((d) => d.id === dogObj.id);
+      if (idx >= 0) {
+        state.dogs[idx] = dogObj;
+      } else {
+        state.dogs.push(dogObj);
+      }
+      state.dogs.sort((a, b) => (a.no || 999) - (b.no || 999));
+      refreshAllViews();
+
+      if (state.useFirebase && state.currentUser && state.db) {
+        await setDoc(doc(state.db, 'artifacts', state.appId, 'public', 'data', 'dogs', dogObj.id), dogObj);
+      }
+    }
+
+    async function removeDogRecord(dogId) {
+      state.dogs = state.dogs.filter((d) => d.id !== dogId);
+      refreshAllViews();
+
+      if (state.useFirebase && state.currentUser && state.db) {
+        await deleteDoc(doc(state.db, 'artifacts', state.appId, 'public', 'data', 'dogs', dogId));
+      }
+    }
+
+    async function saveLogRecord(logObj) {
+      const idx = state.logs.findIndex((l) => l.id === logObj.id);
+      if (idx >= 0) {
+        state.logs[idx] = logObj;
+      } else {
+        state.logs.push(logObj);
+      }
+      refreshAllViews();
+
+      if (state.useFirebase && state.currentUser && state.db) {
+        await setDoc(doc(state.db, 'artifacts', state.appId, 'public', 'data', 'care_logs', logObj.id), logObj);
+      }
+    }
+
+    async function removeLogRecord(logId) {
+      state.logs = state.logs.filter((l) => l.id !== logId);
+      refreshAllViews();
+
+      if (state.useFirebase && state.currentUser && state.db) {
+        await deleteDoc(doc(state.db, 'artifacts', state.appId, 'public', 'data', 'care_logs', logId));
+      }
+    }
+
+    // =========================================================================
+    // 🔒 교사 인증(PIN) 및 권한별 탭 제어
+    // =========================================================================
+    function updateRoleUI() {
+      const roleBadge = document.getElementById('roleModeBadge');
+      const desktopBtn = document.getElementById('desktopTeacherAuthBtn');
+      const mobileBtn = document.getElementById('mobileTeacherAuthBtn');
+      const studentNotice = document.getElementById('studentPrivacyNoticeBar');
+      const teacherNavBtns = document.querySelectorAll('.teacher-only-nav');
+      const pinDisplay = document.getElementById('currentPinDisplay');
+      if (pinDisplay) pinDisplay.textContent = state.teacherPin;
+
+      if (state.isTeacher) {
+        roleBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-slate-900 text-amber-300 border border-slate-700';
+        roleBadge.innerHTML = '🔓 교사 관리자 모드';
+
+        desktopBtn.className = 'hidden lg:flex px-3.5 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs sm:text-sm font-extrabold items-center gap-1.5 transition-all cursor-pointer shrink-0';
+        desktopBtn.innerHTML = '<span>🔓</span><span>교사 로그아웃 (학생화면 전환)</span>';
+
+        mobileBtn.className = 'px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-xs font-extrabold flex items-center gap-1 cursor-pointer';
+        mobileBtn.innerHTML = '<span>🔓</span><span>로그아웃</span>';
+
+        if (studentNotice) studentNotice.classList.add('hidden');
+        teacherNavBtns.forEach((btn) => btn.classList.remove('hidden'));
+      } else {
+        roleBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-sky-100 text-sky-800 border border-sky-200';
+        roleBadge.innerHTML = '🧑‍🎓 학생 작성 모드';
+
+        desktopBtn.className = 'hidden lg:flex px-3.5 py-2 rounded-xl border border-slate-300 bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-extrabold shadow-xs items-center gap-1.5 transition-all cursor-pointer shrink-0';
+        desktopBtn.innerHTML = '<span>🔒</span><span>교사 관리자 로그인</span>';
+
+        mobileBtn.className = 'px-3 py-1.5 rounded-xl border border-slate-300 bg-slate-900 text-white text-xs font-extrabold shadow-2xs flex items-center gap-1 cursor-pointer';
+        mobileBtn.innerHTML = '<span>🔒</span><span>교사 로그인</span>';
+
+        if (studentNotice) studentNotice.classList.remove('hidden');
+        teacherNavBtns.forEach((btn) => btn.classList.add('hidden'));
+      }
+    }
+
+    window.handleTeacherAuthButtonClick = function() {
+      if (state.isTeacher) {
+        state.isTeacher = false;
+        updateRoleUI();
+        switchMainTab('write');
+        showToast('교사 모드에서 로그아웃되어 학생 작성 모드로 전환되었습니다.');
+      } else {
+        document.getElementById('teacherPinInput').value = '';
+        document.getElementById('teacherLoginErrorMsg').classList.add('hidden');
+        document.getElementById('teacherLoginModal').classList.remove('hidden');
+        setTimeout(() => document.getElementById('teacherPinInput').focus(), 80);
+      }
+    };
+
+    window.closeTeacherLoginModal = function() {
+      document.getElementById('teacherLoginModal').classList.add('hidden');
+    };
+
+    window.handleTeacherLoginSubmit = function(e) {
+      e.preventDefault();
+      const inputPin = document.getElementById('teacherPinInput').value.trim();
+      if (inputPin === state.teacherPin) {
+        state.isTeacher = true;
+        closeTeacherLoginModal();
+        updateRoleUI();
+        switchMainTab('monitor');
+        showToast('선생님 환영합니다! 교사 모니터링 및 실습견 추가·제거 메뉴가 열렸습니다.');
+      } else {
+        document.getElementById('teacherLoginErrorMsg').classList.remove('hidden');
+      }
+    };
+
+    window.updateTeacherPin = function() {
+      if (!state.isTeacher) return;
+      const newPin = document.getElementById('newTeacherPinInput').value.trim();
+      if (!newPin || newPin.length < 4) {
+        showToast('새 비밀번호는 4자리 이상으로 입력해 주세요.', 'error');
+        return;
+      }
+      state.teacherPin = newPin;
+      document.getElementById('newTeacherPinInput').value = '';
+      updateRoleUI();
+      showToast(`교사 비밀번호가 [${newPin}]로 변경되었습니다.`);
+    };
+
+    window.openDeployGuideModal = function() {
+      document.getElementById('deployGuideModal').classList.remove('hidden');
+    };
+
+    window.closeDeployGuideModal = function() {
+      document.getElementById('deployGuideModal').classList.add('hidden');
+    };
+
+    window.switchMainTab = function(tabName) {
+      if (!state.isTeacher && tabName !== 'write') {
+        handleTeacherAuthButtonClick();
+        return;
+      }
+
+      state.mainTab = tabName;
+      const tabs = ['write', 'monitor', 'settings', 'history'];
+      tabs.forEach((t) => {
+        const sec = document.getElementById(`tabSection-${t}`);
+        const btn = document.getElementById(`navBtn-${t}`);
+        const isTeacherTab = t !== 'write';
+        const hiddenClass = (!state.isTeacher && isTeacherTab) ? 'hidden' : '';
+
+        if (t === tabName) {
+          sec.classList.remove('hidden');
+          btn.className = `nav-tab-btn ${isTeacherTab ? 'teacher-only-nav' : ''} ${hiddenClass} whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all bg-white text-sky-700 shadow-xs flex items-center gap-1.5 cursor-pointer`;
+        } else {
+          sec.classList.add('hidden');
+          btn.className = `nav-tab-btn ${isTeacherTab ? 'teacher-only-nav' : ''} ${hiddenClass} whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-600 hover:text-slate-900 flex items-center gap-1.5 cursor-pointer`;
+        }
+      });
+      refreshAllViews();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    function refreshAllViews() {
+      updateRoleUI();
+      populateLocationFilterDropdown();
+      populateFormDogSelectAndCards();
+      populateHistoryDogFilter();
+      renderMonitorDashboard();
+      if (state.isTeacher) {
+        renderHistoryTable();
+        renderSettingsDogsGrid();
+      }
+    }
+
+    // =========================================================================
+    // [탭 1] ✏️ 관리 일지 작성 폼 동작 (배변/배뇨/특이사항 '기타 직접 입력' 포함)
+    // =========================================================================
+    window.setFormCategoryFilter = function(cat) {
+      state.formCategoryFilter = cat;
+      ['ALL', '훈련', '미용', '입양모집', '입양예정'].forEach((c) => {
+        const btn = document.getElementById(`formCatBtn-${c}`);
+        if (!btn) return;
+        if (c === cat) {
+          btn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-sky-600 text-white cursor-pointer';
+        } else {
+          btn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer';
+        }
+      });
+      populateFormDogSelectAndCards();
+    };
+
+    window.clearFormDogSearch = function() {
+      const input = document.getElementById('formDogSearchInput');
+      if (input) input.value = '';
+      setFormCategoryFilter('ALL');
+    };
+
+    window.populateFormDogSelectAndCards = function() {
+      const sel = document.getElementById('formDogSelect');
+      const cardsContainer = document.getElementById('formDogQuickCards');
+      if (!sel || !cardsContainer) return;
+
+      const activeDogs = state.dogs;
+      const headerBadge = document.getElementById('formHeaderTotalDogsBadge');
+      if (headerBadge) headerBadge.textContent = `한국펫고등학교 전체 ${activeDogs.length}두`;
+
+      const currentVal = sel.value || activeDogs[0]?.id || '';
+      const searchQ = (document.getElementById('formDogSearchInput')?.value || '').trim().toLowerCase();
+      const catFilter = state.formCategoryFilter || 'ALL';
+      const dateStr = document.getElementById('formDateInput')?.value || TODAY_STR;
+      const period = state.formPeriod;
+
+      sel.innerHTML = activeDogs.map((dog, idx) => `
+        <option value="${dog.id}">${dog.no || idx + 1}. ${escapeHtml(dog.name)} [${escapeHtml(dog.breed || '')}·${escapeHtml(dog.location)}] — 담당: ${escapeHtml(formatStudentsList(dog))}${dog.excluded ? ' (일시제외)' : ''}</option>
+      `).join('');
+
+      if (activeDogs.some((d) => d.id === currentVal)) {
+        sel.value = currentVal;
+      }
+
+      const filteredDogs = activeDogs.filter((dog) => {
+        if (catFilter !== 'ALL' && dog.location !== catFilter) return false;
+        if (searchQ) {
+          const hay = `${dog.no || ''} ${dog.name} ${dog.breed || ''} ${dog.location} ${formatStudentsList(dog)}`.toLowerCase();
+          if (!hay.includes(searchQ)) return false;
+        }
+        return true;
+      });
+
+      const activeDogId = sel.value;
+      if (filteredDogs.length === 0) {
+        cardsContainer.innerHTML = `<div class="col-span-full py-6 text-center text-xs font-bold text-slate-400">검색된 실습견이 없습니다.</div>`;
+        return;
+      }
+
+      cardsContainer.innerHTML = filteredDogs.map((dog) => {
+        const isSelected = dog.id === activeDogId;
+        const doneLog = state.logs.find((l) => l.date === dateStr && l.period === period && l.dogId === dog.id);
+        let statusDot = doneLog
+          ? `<span class="px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 text-[10px] font-extrabold shrink-0">완료</span>`
+          : `<span class="px-1.5 py-0.2 rounded bg-slate-100 text-slate-500 text-[10px] font-bold shrink-0">대기</span>`;
+        if (dog.excluded) {
+          statusDot = `<span class="px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 text-[10px] font-bold shrink-0">제외</span>`;
+        }
+
+        return `
+          <button type="button" onclick="selectDogFromCard('${dog.id}')" class="p-2.5 rounded-xl border-2 text-left transition-all flex items-center justify-between gap-2 cursor-pointer ${isSelected ? 'bg-sky-50 border-sky-600 shadow-2xs' : 'bg-white border-slate-200 hover:border-sky-300'}">
+            <div class="flex items-center gap-2 overflow-hidden">
+              <span class="text-xl shrink-0">${dog.emoji || '🐶'}</span>
+              <div class="overflow-hidden">
+                <div class="font-extrabold text-slate-900 text-xs sm:text-sm truncate">${dog.no ? dog.no + '. ' : ''}${escapeHtml(dog.name)}</div>
+                <div class="text-[11px] font-semibold text-slate-500 truncate">${escapeHtml(formatStudentsList(dog))}</div>
+              </div>
+            </div>
+            ${statusDot}
+          </button>
+        `;
+      }).join('');
+    };
+
+    window.selectDogFromCard = function(dogId) {
+      document.getElementById('formDogSelect').value = dogId;
+      handleFormDogOrSlotChange();
+    };
+
+    window.selectFormPeriod = function(period) {
+      state.formPeriod = period;
+      const amBtn = document.getElementById('periodBtn-AM');
+      const pmBtn = document.getElementById('periodBtn-PM');
+      if (period === 'AM') {
+        amBtn.className = 'py-2.5 px-4 rounded-xl font-extrabold text-sm border-2 transition-all flex items-center justify-center gap-2 bg-amber-50 border-amber-500 text-amber-900 shadow-2xs cursor-pointer';
+        pmBtn.className = 'py-2.5 px-4 rounded-xl font-extrabold text-sm border-2 transition-all flex items-center justify-center gap-2 bg-white border-slate-200 text-slate-600 hover:bg-slate-100 cursor-pointer';
+      } else {
+        pmBtn.className = 'py-2.5 px-4 rounded-xl font-extrabold text-sm border-2 transition-all flex items-center justify-center gap-2 bg-indigo-50 border-indigo-500 text-indigo-900 shadow-2xs cursor-pointer';
+        amBtn.className = 'py-2.5 px-4 rounded-xl font-extrabold text-sm border-2 transition-all flex items-center justify-center gap-2 bg-white border-slate-200 text-slate-600 hover:bg-slate-100 cursor-pointer';
+      }
+      handleFormDogOrSlotChange();
+    };
+
+    window.handleFormDogOrSlotChange = function() {
+      const dateStr = document.getElementById('formDateInput').value || TODAY_STR;
+      const dogId = document.getElementById('formDogSelect').value;
+      const period = state.formPeriod;
+      const dog = state.dogs.find((d) => d.id === dogId) || state.dogs[0];
+      if (!dog) return;
+
+      populateFormDogSelectAndCards();
+
+      // 주의사항 배너 업데이트
+      document.getElementById('cautionDogTitle').textContent = `${dog.emoji || '🐶'} ${dog.name} 필수 관리 주의사항 (담당: ${formatStudentsList(dog)})`;
+      document.getElementById('cautionDogBreed').textContent = dog.breed || '실습견';
+      document.getElementById('cautionDogCategory').textContent = dog.location;
+      document.getElementById('cautionDogText').textContent = dog.caution;
+
+      document.getElementById('weightHintBtn').textContent = `기준 체중(${dog.baseWeight}kg) 자동입력`;
+      document.getElementById('feedHintBtn').textContent = `권장 사료량(${dog.recommendedFeed}g) 자동입력`;
+
+      // 작성자 빠른 선택 칩 생성
+      const chipsContainer = document.getElementById('writerQuickChips');
+      const assignedList = [dog.primaryStudent, dog.secondaryStudent, dog.thirdStudent].filter(Boolean);
+      let chipsHtml = assignedList.map((stu, idx) => `
+        <button type="button" onclick="setWriterName('${escapeHtml(stu)}')" class="px-3 py-2 rounded-xl ${idx === 0 ? 'bg-sky-100 hover:bg-sky-200 text-sky-900 font-extrabold' : 'bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold'} text-xs transition-colors cursor-pointer">
+          담당: ${escapeHtml(stu)}
+        </button>
+      `).join('');
+      chipsHtml += `
+        <button type="button" onclick="setWriterName('사육당번')" class="px-3 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold transition-colors cursor-pointer">
+          사육당번
+        </button>
+      `;
+      chipsContainer.innerHTML = chipsHtml;
+
+      const existingLog = state.logs.find((l) => l.date === dateStr && l.period === period && l.dogId === dogId);
+      const noticeBanner = document.getElementById('existingLogNoticeBanner');
+      const submitBtnText = document.getElementById('submitBtnText');
+      const headerPill = document.getElementById('formHeaderSlotStatusPill');
+
+      if (existingLog) {
+        noticeBanner.classList.remove('hidden');
+        headerPill.textContent = '✅ 제출 완료됨';
+        headerPill.className = 'px-2.5 py-0.5 rounded-full bg-emerald-300 text-slate-950 text-[11px] font-extrabold';
+
+        if (state.isTeacher) {
+          document.getElementById('existingLogNoticeTitle').textContent = `🔓 [교사 열람·수정 모드] ${existingLog.submittedAt}에 ${existingLog.writer} 학생이 제출한 일지입니다.`;
+          document.getElementById('existingLogNoticeText').textContent = `내용을 확인하거나 수정하여 저장할 수 있습니다.`;
+          submitBtnText.textContent = '교사 권한으로 일지 수정 저장';
+
+          document.getElementById('formWriterInput').value = existingLog.writer;
+          document.getElementById('formWeightInput').value = existingLog.weight;
+          document.getElementById('formFeedAmountInput').value = existingLog.feedAmount;
+          selectFeedStatus(existingLog.feedStatus || '완식');
+
+          document.getElementById('formWalkSkippedCheck').checked = !!existingLog.walkSkipped;
+          document.getElementById('formWalkStart').value = existingLog.walkStart || (period === 'AM' ? '08:10' : '17:10');
+          document.getElementById('formWalkEnd').value = existingLog.walkEnd || (period === 'AM' ? '08:30' : '17:30');
+          toggleWalkSkipped();
+
+          selectFecesStatus(existingLog.feces || '정상');
+          document.getElementById('formFecesCustomInput').value = existingLog.fecesCustom || '';
+          selectUrineStatus(existingLog.urine || '정상');
+          document.getElementById('formUrineCustomInput').value = existingLog.urineCustom || '';
+
+          setChecklistItems(existingLog.checkItems || []);
+          document.getElementById('formNotesInput').value = existingLog.notes || '';
+          return;
+        } else {
+          document.getElementById('existingLogNoticeTitle').textContent = `✅ 오늘 ${dog.name}의 ${period === 'AM' ? '오전' : '오후'} 일지는 이미 제출되었습니다 (${existingLog.submittedAt}).`;
+          document.getElementById('existingLogNoticeText').textContent = `(보안을 위해 제출된 상세 내용은 선생님만 열람 가능합니다. 다시 제출하면 덮어써집니다.)`;
+          submitBtnText.textContent = '관리 일지 다시 제출하기';
+        }
+      } else {
+        noticeBanner.classList.add('hidden');
+        headerPill.textContent = '⏳ 작성 대기 중';
+        headerPill.className = 'px-2.5 py-0.5 rounded-full bg-amber-300 text-slate-950 text-[11px] font-extrabold';
+        submitBtnText.textContent = '관리 일지 저장 및 제출하기';
+      }
+
+      // 기본값 세팅
+      document.getElementById('formWriterInput').value = dog.primaryStudent || '';
+      document.getElementById('formWeightInput').value = dog.baseWeight;
+      document.getElementById('formFeedAmountInput').value = dog.recommendedFeed;
+      selectFeedStatus('완식');
+
+      const isIsolated = dog.caution.includes('격리');
+      document.getElementById('formWalkSkippedCheck').checked = isIsolated;
+      document.getElementById('formWalkStart').value = period === 'AM' ? '08:10' : '17:10';
+      document.getElementById('formWalkEnd').value = period === 'AM' ? '08:30' : '17:30';
+      toggleWalkSkipped();
+
+      selectFecesStatus('정상');
+      document.getElementById('formFecesCustomInput').value = '';
+      selectUrineStatus('정상');
+      document.getElementById('formUrineCustomInput').value = '';
+      setChecklistItems(['물 급여 완료', '기본 타월링(눈·입·발·생식기)']);
+      document.getElementById('formNotesInput').value = '';
+    };
+
+    window.setWriterName = function(name) {
+      document.getElementById('formWriterInput').value = name;
+    };
+
+    window.applyRecommendedWeight = function() {
+      const dogId = document.getElementById('formDogSelect').value;
+      const dog = state.dogs.find((d) => d.id === dogId);
+      if (dog) document.getElementById('formWeightInput').value = dog.baseWeight;
+    };
+
+    window.applyRecommendedFeed = function() {
+      const dogId = document.getElementById('formDogSelect').value;
+      const dog = state.dogs.find((d) => d.id === dogId);
+      if (dog) document.getElementById('formFeedAmountInput').value = dog.recommendedFeed;
+    };
+
+    window.selectFeedStatus = function(status) {
+      state.formFeedStatus = status;
+      ['완식', '남김', '거부'].forEach((s) => {
+        const btn = document.getElementById(`feedStatusBtn-${s}`);
+        if (!btn) return;
+        if (s === status) {
+          const color = s === '완식' ? 'bg-emerald-600 text-white' : (s === '남김' ? 'bg-amber-500 text-white' : 'bg-rose-600 text-white');
+          btn.className = `px-2.5 py-1 rounded-lg text-[11px] font-extrabold ${color} cursor-pointer`;
+        } else {
+          btn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white border border-slate-200 text-slate-600 cursor-pointer';
+        }
+      });
+    };
+
+    window.toggleWalkSkipped = function() {
+      const skipped = document.getElementById('formWalkSkippedCheck').checked;
+      const wrapper = document.getElementById('walkTimeInputsWrapper');
+      const quickBtns = document.getElementById('walkQuickButtons');
+      const badge = document.getElementById('walkDurationBadge');
+
+      if (skipped) {
+        wrapper.classList.add('opacity-40', 'pointer-events-none');
+        quickBtns.classList.add('hidden');
+        badge.textContent = '산책 생략/제한';
+        badge.className = 'px-3 py-2 rounded-xl bg-slate-200 text-slate-700 font-extrabold text-sm text-center';
+      } else {
+        wrapper.classList.remove('opacity-40', 'pointer-events-none');
+        quickBtns.classList.remove('hidden');
+        calculateWalkDuration();
+      }
+    };
+
+    window.calculateWalkDuration = function() {
+      const startVal = document.getElementById('formWalkStart').value;
+      const endVal = document.getElementById('formWalkEnd').value;
+      const badge = document.getElementById('walkDurationBadge');
+      if (!startVal || !endVal) {
+        badge.textContent = '시간 입력 필요';
+        return 0;
+      }
+      const [sh, sm] = startVal.split(':').map(Number);
+      const [eh, em] = endVal.split(':').map(Number);
+      let diff = (eh * 60 + em) - (sh * 60 + sm);
+      if (diff < 0) diff += 24 * 60;
+      badge.textContent = `${diff}분 산책 (${startVal}~${endVal})`;
+      badge.className = 'px-3 py-2 rounded-xl bg-sky-100 border border-sky-200 text-sky-900 font-extrabold text-sm text-center';
+      return diff;
+    };
+
+    window.setQuickWalkMinutes = function(mins) {
+      const startVal = document.getElementById('formWalkStart').value || '08:10';
+      const [sh, sm] = startVal.split(':').map(Number);
+      const totalMins = sh * 60 + sm + mins;
+      const eh = String(Math.floor(totalMins / 60) % 24).padStart(2, '0');
+      const em = String(totalMins % 60).padStart(2, '0');
+      document.getElementById('formWalkStart').value = startVal;
+      document.getElementById('formWalkEnd').value = `${eh}:${em}`;
+      calculateWalkDuration();
+    };
+
+    window.setWalkNowEnd = function(mins) {
+      const now = new Date();
+      const eh = String(now.getHours()).padStart(2, '0');
+      const em = String(now.getMinutes()).padStart(2, '0');
+      const startTotal = now.getHours() * 60 + now.getMinutes() - mins;
+      const adjStart = startTotal < 0 ? startTotal + 1440 : startTotal;
+      const sh = String(Math.floor(adjStart / 60) % 24).padStart(2, '0');
+      const sm = String(adjStart % 60).padStart(2, '0');
+      document.getElementById('formWalkStart').value = `${sh}:${sm}`;
+      document.getElementById('formWalkEnd').value = `${eh}:${em}`;
+      calculateWalkDuration();
+    };
+
+    // 배변 상태 선택 ('기타(직접입력)' 선택 시 텍스트창 자동 포커스 및 강조)
+    window.selectFecesStatus = function(val, focusCustom = false) {
+      state.formFeces = val;
+      document.querySelectorAll('.feces-btn').forEach((btn) => {
+        const bVal = btn.getAttribute('data-val');
+        if (bVal === val) {
+          const isAlert = val.includes('설사') || val.includes('무른') || val.includes('혈변');
+          const isCustom = val.includes('기타');
+          const styleClass = isAlert
+            ? 'bg-rose-50 border-rose-500 text-rose-900 font-extrabold'
+            : (isCustom ? 'bg-sky-50 border-sky-600 text-sky-900 font-extrabold' : 'bg-emerald-50 border-emerald-500 text-emerald-900 font-extrabold');
+          btn.className = `feces-btn py-2 px-2.5 rounded-xl text-xs border-2 transition-all cursor-pointer ${styleClass}`;
+        } else {
+          btn.className = 'feces-btn py-2 px-2.5 rounded-xl text-xs font-bold border-2 transition-all bg-white border-slate-200 text-slate-600 cursor-pointer';
+        }
+      });
+
+      const customInput = document.getElementById('formFecesCustomInput');
+      if (val === '기타(직접입력)' && customInput) {
+        customInput.classList.add('ring-2', 'ring-sky-500', 'bg-sky-50/40');
+        if (focusCustom) customInput.focus();
+      } else if (customInput) {
+        customInput.classList.remove('ring-2', 'ring-sky-500', 'bg-sky-50/40');
+      }
+    };
+
+    // 배뇨 상태 선택 ('기타(직접입력)' 선택 시 텍스트창 자동 포커스 및 강조)
+    window.selectUrineStatus = function(val, focusCustom = false) {
+      state.formUrine = val;
+      document.querySelectorAll('.urine-btn').forEach((btn) => {
+        const bVal = btn.getAttribute('data-val');
+        if (bVal === val) {
+          const isAlert = val.includes('혈뇨') || val.includes('진한') || val.includes('빈뇨');
+          const isCustom = val.includes('기타');
+          const styleClass = isAlert
+            ? 'bg-amber-50 border-amber-500 text-amber-950 font-extrabold'
+            : (isCustom ? 'bg-sky-50 border-sky-600 text-sky-900 font-extrabold' : 'bg-emerald-50 border-emerald-500 text-emerald-900 font-extrabold');
+          btn.className = `urine-btn py-2 px-2.5 rounded-xl text-xs border-2 transition-all cursor-pointer ${styleClass}`;
+        } else {
+          btn.className = 'urine-btn py-2 px-2.5 rounded-xl text-xs font-bold border-2 transition-all bg-white border-slate-200 text-slate-600 cursor-pointer';
+        }
+      });
+
+      const customInput = document.getElementById('formUrineCustomInput');
+      if (val === '기타(직접입력)' && customInput) {
+        customInput.classList.add('ring-2', 'ring-sky-500', 'bg-sky-50/40');
+        if (focusCustom) customInput.focus();
+      } else if (customInput) {
+        customInput.classList.remove('ring-2', 'ring-sky-500', 'bg-sky-50/40');
+      }
+    };
+
+    window.toggleCareCheckItem = function(btn, focusNotes = false) {
+      const isSelected = btn.classList.contains('border-sky-500');
+      if (isSelected) {
+        btn.className = 'care-check-chip px-3 py-1.5 rounded-xl text-xs font-bold border-2 bg-white border-slate-200 text-slate-600 transition-all cursor-pointer';
+      } else {
+        btn.className = 'care-check-chip px-3 py-1.5 rounded-xl text-xs font-bold border-2 bg-sky-50 border-sky-500 text-sky-900 transition-all cursor-pointer';
+        if (focusNotes) {
+          document.getElementById('formNotesInput')?.focus();
+        }
+      }
+    };
+
+    function setChecklistItems(items) {
+      document.querySelectorAll('.care-check-chip').forEach((btn) => {
+        const itemLabel = btn.getAttribute('data-item');
+        if (items.includes(itemLabel)) {
+          btn.className = 'care-check-chip px-3 py-1.5 rounded-xl text-xs font-bold border-2 bg-sky-50 border-sky-500 text-sky-900 transition-all cursor-pointer';
+        } else {
+          btn.className = 'care-check-chip px-3 py-1.5 rounded-xl text-xs font-bold border-2 bg-white border-slate-200 text-slate-600 transition-all cursor-pointer';
+        }
+      });
+    }
+
+    function getSelectedChecklistItems() {
+      const arr = [];
+      document.querySelectorAll('.care-check-chip').forEach((btn) => {
+        if (btn.classList.contains('border-sky-500')) {
+          arr.push(btn.getAttribute('data-item'));
+        }
+      });
+      return arr;
+    }
+
+    window.handleCareLogSubmit = async function(e) {
+      e.preventDefault();
+      const dateStr = document.getElementById('formDateInput').value || TODAY_STR;
+      const period = state.formPeriod;
+      const dogId = document.getElementById('formDogSelect').value;
+      const writer = document.getElementById('formWriterInput').value.trim();
+      const weight = parseFloat(document.getElementById('formWeightInput').value) || 0;
+      const feedAmount = parseInt(document.getElementById('formFeedAmountInput').value, 10) || 0;
+      const walkSkipped = document.getElementById('formWalkSkippedCheck').checked;
+      const walkStart = walkSkipped ? '' : document.getElementById('formWalkStart').value;
+      const walkEnd = walkSkipped ? '' : document.getElementById('formWalkEnd').value;
+      const walkMinutes = walkSkipped ? 0 : calculateWalkDuration();
+      const fecesCustom = document.getElementById('formFecesCustomInput').value.trim();
+      const urineCustom = document.getElementById('formUrineCustomInput').value.trim();
+      const notes = document.getElementById('formNotesInput').value.trim();
+
+      if (!writer) {
+        showToast('작성자 학생 이름을 입력해 주세요.', 'error');
+        return;
+      }
+
+      if (state.formFeces === '기타(직접입력)' && !fecesCustom) {
+        showToast('배변 상태 [기타]를 선택하셨습니다. 상세 상태를 입력해 주세요.', 'error');
+        document.getElementById('formFecesCustomInput').focus();
+        return;
+      }
+
+      if (state.formUrine === '기타(직접입력)' && !urineCustom) {
+        showToast('배뇨 상태 [기타]를 선택하셨습니다. 상세 상태를 입력해 주세요.', 'error');
+        document.getElementById('formUrineCustomInput').focus();
+        return;
+      }
+
+      const now = new Date();
+      const submittedAt = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      const logObj = {
+        id: `${dateStr}_${period}_${dogId}`,
+        date: dateStr,
+        period,
+        dogId,
+        writer,
+        weight,
+        feedAmount,
+        feedStatus: state.formFeedStatus,
+        walkSkipped,
+        walkStart,
+        walkEnd,
+        walkMinutes,
+        feces: state.formFeces,
+        fecesCustom,
+        urine: state.formUrine,
+        urineCustom,
+        checkItems: getSelectedChecklistItems(),
+        notes,
+        submittedAt
+      };
+
+      await saveLogRecord(logObj);
+
+      const dog = state.dogs.find((d) => d.id === dogId);
+      const periodKor = period === 'AM' ? '오전(아침)' : '오후(저녁)';
+      showToast(`${dog ? dog.name : ''} ${periodKor} 관리 일지가 제출되었습니다! (작성자: ${writer})`);
+
+      state.monitorDate = dateStr;
+      if (state.isTeacher) {
+        switchMainTab('monitor');
+      } else {
+        const banner = document.getElementById('sessionSubmittedBanner');
+        const textEl = document.getElementById('sessionSubmittedText');
+        if (banner && textEl) {
+          textEl.textContent = `[${dateStr} ${periodKor}] ${dog ? dog.name : ''} — 작성자: ${writer} (${submittedAt} 제출 완료)`;
+          banner.classList.remove('hidden');
+        }
+        handleFormDogOrSlotChange();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+
+    // =========================================================================
+    // [탭 2 - 교사 전용] 📊 교사 모니터링 대시보드
+    // =========================================================================
+    window.handleMonitorDateChange = function(val) {
+      if (!val) return;
+      state.monitorDate = val;
+      renderMonitorDashboard();
+    };
+
+    window.shiftMonitorDate = function(days) {
+      const parts = state.monitorDate.split('-').map(Number);
+      const dt = new Date(parts[0], parts[1] - 1, parts[2]);
+      dt.setDate(dt.getDate() + days);
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth() + 1).padStart(2, '0');
+      const d = String(dt.getDate()).padStart(2, '0');
+      state.monitorDate = `${y}-${m}-${d}`;
+      renderMonitorDashboard();
+    };
+
+    window.setMonitorDateToday = function() {
+      state.monitorDate = TODAY_STR;
+      renderMonitorDashboard();
+    };
+
+    window.setMonitorFilter = function(filterType) {
+      state.monitorFilter = filterType;
+      ['all', 'missing', 'done', 'alert'].forEach((f) => {
+        const btn = document.getElementById(`filterBtn-${f}`);
+        if (!btn) return;
+        if (f === filterType) {
+          btn.className = 'px-2.5 py-1.5 rounded-lg bg-white text-slate-900 shadow-2xs transition-all cursor-pointer';
+        } else {
+          btn.className = 'px-2.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition-all cursor-pointer';
+        }
+      });
+      renderMonitorDashboard();
+    };
+
+    function populateLocationFilterDropdown() {
+      const sel = document.getElementById('locationFilterSelect');
+      if (!sel) return;
+      const currentVal = sel.value || 'ALL';
+      const locations = ['훈련', '미용', '입양모집', '입양예정'];
+      let html = `<option value="ALL">모든 구분 (${state.dogs.length}두)</option>`;
+      locations.forEach((loc) => {
+        const count = state.dogs.filter((d) => d.location === loc).length;
+        html += `<option value="${escapeHtml(loc)}">${escapeHtml(loc)} (${count}두)</option>`;
+      });
+      sel.innerHTML = html;
+      if (locations.includes(currentVal)) sel.value = currentVal;
+    }
+
+    window.renderMonitorDashboard = function() {
+      const dateStr = state.monitorDate;
+      const dateInput = document.getElementById('monitorDateInput');
+      if (dateInput) dateInput.value = dateStr;
+      const korLabel = document.getElementById('monitorDateKorLabel');
+      if (korLabel) korLabel.textContent = formatKoreanDateLabel(dateStr);
+
+      // 일시 제외(excluded)되지 않은 출석 대상 실습견 기준 집계
+      const activeDogs = state.dogs.filter((d) => !d.excluded);
+      const excludedCount = state.dogs.length - activeDogs.length;
+      const totalDogs = activeDogs.length;
+      const dayLogs = state.logs.filter((l) => l.date === dateStr);
+
+      let amDone = 0;
+      let pmDone = 0;
+      let alertCount = 0;
+      const missingAmList = [];
+      const missingPmList = [];
+
+      activeDogs.forEach((dog) => {
+        const amLog = dayLogs.find((l) => l.dogId === dog.id && l.period === 'AM');
+        const pmLog = dayLogs.find((l) => l.dogId === dog.id && l.period === 'PM');
+
+        if (amLog) {
+          amDone++;
+          if (isLogAbnormal(amLog)) alertCount++;
+        } else {
+          missingAmList.push(dog);
+        }
+
+        if (pmLog) {
+          pmDone++;
+          if (isLogAbnormal(pmLog)) alertCount++;
+        } else {
+          missingPmList.push(dog);
+        }
+      });
+
+      const amMissing = totalDogs - amDone;
+      const pmMissing = totalDogs - pmDone;
+      const totalMissing = amMissing + pmMissing;
+      const amPct = totalDogs > 0 ? Math.round((amDone / totalDogs) * 100) : 0;
+      const pmPct = totalDogs > 0 ? Math.round((pmDone / totalDogs) * 100) : 0;
+
+      document.getElementById('statTotalDogs').textContent = totalDogs;
+      document.getElementById('statTotalSlots').textContent = totalDogs * 2;
+      document.getElementById('statExcludedSubtext').textContent = excludedCount > 0
+        ? `전체 ${state.dogs.length}두 중 일시 제외 ${excludedCount}두`
+        : `전체 ${state.dogs.length}두 정상 출석 대상`;
+
+      document.getElementById('statAmDone').textContent = amDone;
+      document.getElementById('statAmTotal').textContent = totalDogs;
+      document.getElementById('statAmBadge').textContent = `${amPct}%`;
+      document.getElementById('statAmMissingText').textContent = amMissing > 0 ? `미작성 ${amMissing}건` : '전원 완료!';
+      document.getElementById('statAmBar').style.width = `${amPct}%`;
+
+      document.getElementById('statPmDone').textContent = pmDone;
+      document.getElementById('statPmTotal').textContent = totalDogs;
+      document.getElementById('statPmBadge').textContent = `${pmPct}%`;
+      document.getElementById('statPmMissingText').textContent = pmMissing > 0 ? `미작성 ${pmMissing}건` : '전원 완료!';
+      document.getElementById('statPmBar').style.width = `${pmPct}%`;
+
+      document.getElementById('statAlertCount').textContent = alertCount;
+      document.getElementById('navMissingCountBadge').textContent = totalMissing;
+
+      const summaryPill = document.getElementById('missingSummaryPill');
+      if (totalMissing === 0) {
+        summaryPill.textContent = '🎉 오늘 오전·오후 전 개체 작성 완료!';
+        summaryPill.className = 'px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300';
+      } else {
+        summaryPill.textContent = `오전 미작성 ${amMissing}두 · 오후 미작성 ${pmMissing}두`;
+        summaryPill.className = 'px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-rose-100 text-rose-700 border border-rose-300';
+      }
+
+      const amContainer = document.getElementById('missingAmBadgesContainer');
+      if (missingAmList.length === 0) {
+        amContainer.innerHTML = `<span class="text-xs font-bold text-emerald-600 py-1">✅ 오전 관리 일지가 모두 작성되었습니다!</span>`;
+      } else {
+        amContainer.innerHTML = missingAmList.map((dog) => `
+          <button onclick="jumpToWriteLog('${dateStr}', 'AM', '${dog.id}')" class="group px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-600 text-rose-900 hover:text-white border border-rose-200 hover:border-rose-600 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-2xs">
+            <span>${dog.emoji || '🐶'} <strong>${escapeHtml(dog.name)}</strong></span>
+            <span class="text-[11px] text-rose-600 group-hover:text-rose-100">(${escapeHtml(formatStudentsList(dog))})</span>
+          </button>
+        `).join('');
+      }
+
+      const pmContainer = document.getElementById('missingPmBadgesContainer');
+      if (missingPmList.length === 0) {
+        pmContainer.innerHTML = `<span class="text-xs font-bold text-emerald-600 py-1">✅ 오후 관리 일지가 모두 작성되었습니다!</span>`;
+      } else {
+        pmContainer.innerHTML = missingPmList.map((dog) => `
+          <button onclick="jumpToWriteLog('${dateStr}', 'PM', '${dog.id}')" class="group px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-600 text-rose-900 hover:text-white border border-rose-200 hover:border-rose-600 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-2xs">
+            <span>${dog.emoji || '🐶'} <strong>${escapeHtml(dog.name)}</strong></span>
+            <span class="text-[11px] text-rose-600 group-hover:text-rose-100">(${escapeHtml(formatStudentsList(dog))})</span>
+          </button>
+        `).join('');
+      }
+
+      // 테이블 렌더링
+      const locFilter = document.getElementById('locationFilterSelect')?.value || 'ALL';
+      const searchQ = (document.getElementById('monitorSearchInput')?.value || '').trim().toLowerCase();
+
+      const filteredDogs = state.dogs.filter((dog) => {
+        if (locFilter !== 'ALL' && dog.location !== locFilter) return false;
+        if (searchQ) {
+          const hay = `${dog.no || ''} ${dog.name} ${dog.breed || ''} ${dog.location} ${formatStudentsList(dog)}`.toLowerCase();
+          if (!hay.includes(searchQ)) return false;
+        }
+        const amLog = dayLogs.find((l) => l.dogId === dog.id && l.period === 'AM');
+        const pmLog = dayLogs.find((l) => l.dogId === dog.id && l.period === 'PM');
+
+        if (state.monitorFilter === 'missing') return !dog.excluded && (!amLog || !pmLog);
+        if (state.monitorFilter === 'done') return !!(amLog || pmLog);
+        if (state.monitorFilter === 'alert') return isLogAbnormal(amLog) || isLogAbnormal(pmLog);
+        return true;
+      });
+
+      const tbody = document.getElementById('monitorTableBody');
+      if (filteredDogs.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="py-10 text-center text-slate-400 font-bold text-sm">
+              조건에 해당하는 실습견이 없습니다.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = filteredDogs.map((dog, idx) => {
+        const amLog = dayLogs.find((l) => l.dogId === dog.id && l.period === 'AM');
+        const pmLog = dayLogs.find((l) => l.dogId === dog.id && l.period === 'PM');
+        const catBadgeColor = dog.location === '미용'
+          ? 'bg-pink-50 text-pink-700 border-pink-200'
+          : (dog.location.includes('입양') ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-sky-50 text-sky-700 border-sky-200');
+
+        return `
+          <tr class="hover:bg-slate-50/90 transition-colors ${dog.excluded ? 'opacity-60 bg-slate-50' : ''}">
+            <td class="py-3.5 px-4 align-top">
+              <div class="flex items-start gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-lg shrink-0 font-extrabold text-slate-500">
+                  ${dog.emoji || '🐶'}
+                </div>
+                <div>
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-xs font-extrabold text-slate-400">#${dog.no || idx + 1}</span>
+                    <span class="font-extrabold text-slate-900 text-base">${escapeHtml(dog.name)}</span>
+                    <span class="px-2 py-0.5 rounded-md border font-bold text-[11px] ${catBadgeColor}">${escapeHtml(dog.location)}</span>
+                    ${dog.excluded ? `<span class="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-extrabold text-[10px]">⏸️ 출석제외</span>` : ''}
+                  </div>
+                  <p class="text-xs font-semibold text-slate-500 mt-0.5">${escapeHtml(dog.breed || '')}</p>
+                </div>
+              </div>
+            </td>
+
+            <td class="py-3.5 px-4 align-top">
+              <div class="font-extrabold text-slate-800 text-xs sm:text-sm">${escapeHtml(formatStudentsList(dog))}</div>
+              <div class="text-[11px] text-slate-400 mt-0.5">기준 ${dog.baseWeight}kg · 사료 ${dog.recommendedFeed}g</div>
+            </td>
+
+            <td class="py-3.5 px-4 align-top">
+              ${renderSlotCellHtml(dateStr, 'AM', dog, amLog)}
+            </td>
+
+            <td class="py-3.5 px-4 align-top">
+              ${renderSlotCellHtml(dateStr, 'PM', dog, pmLog)}
+            </td>
+
+            <td class="py-3.5 px-4 align-top">
+              ${renderHealthSummaryCellHtml(amLog, pmLog, dog)}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    };
+
+    function renderSlotCellHtml(dateStr, period, dog, log) {
+      if (dog.excluded && !log) {
+        return `<div class="p-2.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold text-slate-500 text-center">⏸️ 일지 제외됨</div>`;
+      }
+      if (!log) {
+        return `
+          <button onclick="jumpToWriteLog('${dateStr}', '${period}', '${dog.id}')" class="w-full p-2.5 rounded-xl border-2 border-dashed border-rose-200 hover:border-rose-400 bg-rose-50/50 hover:bg-rose-50 text-left transition-all group cursor-pointer">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-extrabold text-rose-600">❌ 미작성</span>
+              <span class="text-[10px] font-bold text-rose-500 group-hover:underline">입력 ▶</span>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-0.5 truncate">담당: ${escapeHtml(formatStudentsList(dog))}</div>
+          </button>
+        `;
+      }
+
+      const walkText = log.walkSkipped ? '산책생략' : `${log.walkMinutes}분 산책`;
+      return `
+        <div onclick="openLogDetailModal('${log.id}')" class="p-2.5 rounded-xl border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50 transition-all cursor-pointer">
+          <div class="flex items-center justify-between gap-1">
+            <span class="text-xs font-extrabold text-emerald-800">✅ ${escapeHtml(log.writer)}</span>
+            <span class="text-[10px] font-bold text-emerald-600">${escapeHtml(log.submittedAt)}</span>
+          </div>
+          <div class="text-[11px] font-semibold text-slate-700 mt-1">
+            ${log.weight}kg · ${log.feedAmount}g(${escapeHtml(log.feedStatus)}) · ${walkText}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderHealthSummaryCellHtml(amLog, pmLog, dog) {
+      if (!amLog && !pmLog) {
+        return `<span class="text-xs text-slate-400 font-medium">${escapeHtml(dog.caution)}</span>`;
+      }
+
+      const items = [];
+      [amLog, pmLog].forEach((l) => {
+        if (!l) return;
+        const pLabel = l.period === 'AM' ? '오전' : '오후';
+        const fDisp = formatFecesDisplay(l);
+        const uDisp = formatUrineDisplay(l);
+        const abnormal = isLogAbnormal(l);
+
+        items.push(`
+          <div class="text-xs ${abnormal ? 'text-rose-700 font-bold' : 'text-slate-700'}">
+            <span class="font-extrabold">[${pLabel}]</span> 대변: ${escapeHtml(fDisp)} / 소변: ${escapeHtml(uDisp)}
+          </div>
+        `);
+        if (l.notes) {
+          items.push(`<div class="text-[11px] text-sky-900 bg-sky-50 px-2 py-1 rounded-lg border border-sky-100 mt-0.5">💬 [${pLabel} ${escapeHtml(l.writer)}] ${escapeHtml(l.notes)}</div>`);
+        }
+      });
+
+      return `<div class="space-y-1 max-w-xs">${items.join('')}</div>`;
+    }
+
+    window.jumpToWriteLog = function(dateStr, period, dogId) {
+      document.getElementById('formDateInput').value = dateStr;
+      document.getElementById('formDogSelect').value = dogId;
+      selectFormPeriod(period);
+      switchMainTab('write');
+    };
+
+    // 클립보드 복사 유틸
+    function copyTextToClipboard(text, successMsg) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showToast(successMsg);
+      } catch (e) {
+        showToast('복사에 실패했습니다.', 'error');
+      } finally {
+        document.body.removeChild(ta);
+      }
+    }
+
+    window.copyKakaoMissingNotice = function(mode = 'all') {
+      const dateStr = state.monitorDate;
+      const dayLogs = state.logs.filter((l) => l.date === dateStr);
+      const missingAm = [];
+      const missingPm = [];
+
+      state.dogs.filter(d => !d.excluded).forEach((dog) => {
+        const amLog = dayLogs.find((l) => l.dogId === dog.id && l.period === 'AM');
+        const pmLog = dayLogs.find((l) => l.dogId === dog.id && l.period === 'PM');
+        const managerStr = formatStudentsList(dog);
+
+        if (!amLog) missingAm.push(`• [${dog.location}] ${dog.name} (${managerStr})`);
+        if (!pmLog) missingPm.push(`• [${dog.location}] ${dog.name} (${managerStr})`);
+      });
+
+      let lines = [`[🐶 한국펫고 실습견 관리일지 미작성 안내 (${dateStr})]`, ''];
+      if (mode === 'all' || mode === 'am') {
+        lines.push(`☀️ [오전(아침) 미작성 — ${missingAm.length}두]`);
+        lines.push(missingAm.length ? missingAm.join('\n') : '• 전원 작성 완료!');
+        lines.push('');
+      }
+      if (mode === 'all' || mode === 'pm') {
+        lines.push(`🌙 [오후(저녁) 미작성 — ${missingPm.length}두]`);
+        lines.push(missingPm.length ? missingPm.join('\n') : '• 전원 작성 완료!');
+        lines.push('');
+      }
+      lines.push('담당 학생들은 개체 관리 후 즉시 일지를 작성해 제출해 주세요!');
+
+      copyTextToClipboard(lines.join('\n'), '카카오톡 미작성자 안내 문구가 복사되었습니다!');
+    };
+
+    window.copyKakaoDailyReport = function() {
+      const dateStr = state.monitorDate;
+      const dayLogs = state.logs.filter((l) => l.date === dateStr);
+      const alertLines = [];
+
+      dayLogs.forEach((l) => {
+        const dog = state.dogs.find((d) => d.id === l.dogId);
+        if (!dog) return;
+        if (isLogAbnormal(l) || (l.notes && l.notes.trim() !== '')) {
+          const pKor = l.period === 'AM' ? '오전' : '오후';
+          alertLines.push(`• ${dog.name}(${pKor}/${l.writer}): 대변[${formatFecesDisplay(l)}], 소변[${formatUrineDisplay(l)}] ${l.notes ? '/ 메모: ' + l.notes : ''}`);
+        }
+      });
+
+      const report = [
+        `[🩺 한국펫고 실습견 일일 건강·특이사항 요약 (${dateStr})]`,
+        `• 총 기록 건수: ${dayLogs.length}건`,
+        '',
+        '[주요 특이사항 및 기타 보고 내역]',
+        alertLines.length ? alertLines.join('\n') : '• 특이 이상징후 없이 전 개체 양호합니다.'
+      ].join('\n');
+
+      copyTextToClipboard(report, '오늘 건강·특이사항 요약 리포트가 복사되었습니다!');
+    };
+
+    // =========================================================================
+    // [탭 3 - 교사 전용] 🐶 실습견 추가·제거(삭제)·배정 관리
+    // =========================================================================
+    window.renderSettingsDogsGrid = function() {
+      const grid = document.getElementById('settingsDogCardsGrid');
+      if (!grid) return;
+      const searchQ = (document.getElementById('settingsSearchInput')?.value || '').trim().toLowerCase();
+      const catFilter = document.getElementById('settingsCatFilter')?.value || 'ALL';
+
+      const filtered = state.dogs.filter((dog) => {
+        if (catFilter === 'EXCLUDED') return !!dog.excluded;
+        if (catFilter !== 'ALL' && dog.location !== catFilter) return false;
+        if (searchQ) {
+          const hay = `${dog.no || ''} ${dog.name} ${dog.breed || ''} ${dog.location} ${formatStudentsList(dog)}`.toLowerCase();
+          if (!hay.includes(searchQ)) return false;
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-400 font-bold">조건에 해당하는 실습견이 없습니다.</div>`;
+        return;
+      }
+
+      grid.innerHTML = filtered.map((dog, idx) => `
+        <div class="bg-white rounded-2xl p-5 border ${dog.excluded ? 'border-amber-300 bg-amber-50/20' : 'border-slate-200/90'} shadow-2xs flex flex-col justify-between gap-4">
+          <div>
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center text-2xl shrink-0">
+                  ${dog.emoji || '🐶'}
+                </div>
+                <div>
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-xs font-extrabold text-slate-400">#${dog.no || idx + 1}</span>
+                    <h3 class="text-base font-extrabold text-slate-900">${escapeHtml(dog.name)}</h3>
+                    <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-bold text-[11px]">${escapeHtml(dog.location)}</span>
+                    ${dog.excluded ? `<span class="px-2 py-0.5 rounded-md bg-amber-200 text-amber-950 font-extrabold text-[10px]">⏸️ 출석제외중</span>` : ''}
+                  </div>
+                  <p class="text-xs font-semibold text-slate-500 mt-0.5">${escapeHtml(dog.breed || '')}</p>
+                </div>
+              </div>
+              <div class="text-right text-xs font-bold text-slate-500 shrink-0">
+                <div>기준 ${dog.baseWeight}kg</div>
+                <div class="text-sky-700">사료 ${dog.recommendedFeed}g</div>
+              </div>
+            </div>
+
+            <div class="mt-3.5 p-3 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between text-xs">
+              <span class="text-slate-400 font-bold">담당 학생:</span>
+              <span class="font-extrabold text-slate-900">${escapeHtml(formatStudentsList(dog))}</span>
+            </div>
+
+            <div class="mt-2.5 p-3 rounded-xl bg-amber-50/70 border border-amber-200/80 text-xs">
+              <span class="font-extrabold text-amber-900 block mb-0.5">🚨 필수 관리 주의사항</span>
+              <p class="text-amber-950 font-medium leading-relaxed line-clamp-2">${escapeHtml(dog.caution)}</p>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-1.5 pt-3 border-t border-slate-100">
+            <button onclick="toggleDogExcluded('${dog.id}')" class="px-2.5 py-1.5 rounded-xl border ${dog.excluded ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-amber-300 bg-amber-50 text-amber-900'} text-[11px] font-extrabold cursor-pointer">
+              ${dog.excluded ? '▶️ 출석 대상 복귀' : '⏸️ 일시 제외'}
+            </button>
+
+            <div class="flex items-center gap-1.5">
+              <button onclick="openDogModal('${dog.id}')" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-sky-100 text-slate-700 hover:text-sky-800 text-xs font-bold transition-colors cursor-pointer">
+                ✏️ 정보·담당 수정
+              </button>
+              <button onclick="openDeleteDogConfirmModal('${dog.id}')" class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white text-xs font-extrabold transition-colors cursor-pointer">
+                🗑️ 개체 제거
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    };
+
+    window.toggleDogExcluded = async function(dogId) {
+      if (!state.isTeacher) return;
+      const dog = state.dogs.find((d) => d.id === dogId);
+      if (!dog) return;
+      dog.excluded = !dog.excluded;
+      await saveDogRecord(dog);
+      showToast(dog.excluded
+        ? `${dog.name} 개체가 일시적으로 출석·미작성 집계에서 제외되었습니다.`
+        : `${dog.name} 개체가 정상 출석·일지 대상으로 복귀되었습니다.`);
+    };
+
+    window.openDogModal = function(dogId = '') {
+      if (!state.isTeacher) {
+        handleTeacherAuthButtonClick();
+        return;
+      }
+      const modal = document.getElementById('dogConfigModal');
+      if (dogId) {
+        const dog = state.dogs.find((d) => d.id === dogId);
+        if (!dog) return;
+        document.getElementById('dogModalHeaderTitle').textContent = `🐾 ${dog.name} 정보 및 담당 학생 수정`;
+        document.getElementById('configDogId').value = dog.id;
+        document.getElementById('configDogNo').value = dog.no || 1;
+        document.getElementById('configDogName').value = dog.name;
+        document.getElementById('configDogBreed').value = dog.breed || '';
+        document.getElementById('configDogEmoji').value = dog.emoji || '🐶';
+        document.getElementById('configDogLocation').value = dog.location || '훈련';
+        document.getElementById('configDogWeight').value = dog.baseWeight;
+        document.getElementById('configDogFeed').value = dog.recommendedFeed;
+        document.getElementById('configDogPrimaryStudent').value = dog.primaryStudent || '';
+        document.getElementById('configDogSecondaryStudent').value = dog.secondaryStudent || '';
+        document.getElementById('configDogThirdStudent').value = dog.thirdStudent || '';
+        document.getElementById('configDogCaution').value = dog.caution || '';
+        document.getElementById('configDogExcluded').checked = !!dog.excluded;
+      } else {
+        document.getElementById('dogModalHeaderTitle').textContent = '➕ 신규 실습견 등록하기';
+        document.getElementById('configDogId').value = '';
+        const maxNo = state.dogs.reduce((acc, d) => Math.max(acc, d.no || 0), 0);
+        document.getElementById('configDogNo').value = maxNo + 1;
+        document.getElementById('configDogName').value = '';
+        document.getElementById('configDogBreed').value = '';
+        document.getElementById('configDogEmoji').value = '🐕';
+        document.getElementById('configDogLocation').value = '훈련';
+        document.getElementById('configDogWeight').value = 10.0;
+        document.getElementById('configDogFeed').value = 100;
+        document.getElementById('configDogPrimaryStudent').value = '';
+        document.getElementById('configDogSecondaryStudent').value = '';
+        document.getElementById('configDogThirdStudent').value = '';
+        document.getElementById('configDogCaution').value = '산책 후 물 급여 및 눈곱·입·발·생식기 기본 타월링';
+        document.getElementById('configDogExcluded').checked = false;
+      }
+      modal.classList.remove('hidden');
+    };
+
+    window.closeDogModal = function() {
+      document.getElementById('dogConfigModal').classList.add('hidden');
+    };
+
+    window.handleDogConfigSubmit = async function(e) {
+      e.preventDefault();
+      if (!state.isTeacher) return;
+      const existingId = document.getElementById('configDogId').value;
+      const dogObj = {
+        id: existingId || `dog-${Date.now()}`,
+        no: parseInt(document.getElementById('configDogNo').value, 10) || (state.dogs.length + 1),
+        name: document.getElementById('configDogName').value.trim(),
+        breed: document.getElementById('configDogBreed').value.trim(),
+        emoji: document.getElementById('configDogEmoji').value,
+        location: document.getElementById('configDogLocation').value.trim(),
+        baseWeight: parseFloat(document.getElementById('configDogWeight').value) || 5.0,
+        recommendedFeed: parseInt(document.getElementById('configDogFeed').value, 10) || 100,
+        primaryStudent: document.getElementById('configDogPrimaryStudent').value.trim(),
+        secondaryStudent: document.getElementById('configDogSecondaryStudent').value.trim(),
+        thirdStudent: document.getElementById('configDogThirdStudent').value.trim(),
+        caution: document.getElementById('configDogCaution').value.trim(),
+        excluded: document.getElementById('configDogExcluded').checked
+      };
+
+      await saveDogRecord(dogObj);
+      closeDogModal();
+      showToast(`${dogObj.name} 실습견 정보가 저장되었습니다!`);
+    };
+
+    // 실습견 삭제(제거) 확인 모달
+    window.openDeleteDogConfirmModal = function(dogId) {
+      if (!state.isTeacher) return;
+      const dog = state.dogs.find((d) => d.id === dogId);
+      if (!dog) return;
+      state.pendingDeleteDogId = dogId;
+      document.getElementById('deleteConfirmDogTitle').textContent = `[#${dog.no || ''} ${dog.name}] 개체를 목록에서 제거하시겠습니까?`;
+      document.getElementById('deleteDogConfirmModal').classList.remove('hidden');
+
+      document.getElementById('pauseInsteadOfDeleteBtn').onclick = async () => {
+        dog.excluded = true;
+        await saveDogRecord(dog);
+        closeDeleteDogConfirmModal();
+        showToast(`${dog.name} 개체가 삭제 대신 [일시 제외] 상태로 전환되었습니다.`);
+      };
+
+      document.getElementById('confirmHardDeleteDogBtn').onclick = async () => {
+        const deletedName = dog.name;
+        await removeDogRecord(dogId);
+        closeDeleteDogConfirmModal();
+        showToast(`${deletedName} 개체가 실습견 목록에서 완전히 제거되었습니다.`);
+      };
+    };
+
+    window.closeDeleteDogConfirmModal = function() {
+      state.pendingDeleteDogId = null;
+      document.getElementById('deleteDogConfirmModal').classList.add('hidden');
+    };
+
+    window.openResetConfirmModal = function() {
+      document.getElementById('resetConfirmModal').classList.remove('hidden');
+    };
+
+    window.closeResetConfirmModal = function() {
+      document.getElementById('resetConfirmModal').classList.add('hidden');
+    };
+
+    window.confirmResetToSchool37Dogs = async function() {
+      closeResetConfirmModal();
+      state.dogs = JSON.parse(JSON.stringify(RAW_37_DOGS));
+      refreshAllViews();
+      if (state.useFirebase && state.currentUser && state.db) {
+        for (const d of RAW_37_DOGS) {
+          await setDoc(doc(state.db, 'artifacts', state.appId, 'public', 'data', 'dogs', d.id), d);
+        }
+      }
+      showToast('학교 표준 37두 실습견 및 담당 학생 배정 명단이 복원되었습니다!');
+    };
+
+    // =========================================================================
+    // [탭 4 - 교사 전용] 📋 전체 일지 조회, 상세 모달, 엑셀(CSV) 다운로드
+    // =========================================================================
+    function populateHistoryDogFilter() {
+      const sel = document.getElementById('historyDogFilter');
+      if (!sel) return;
+      const currentVal = sel.value || 'ALL';
+      let html = `<option value="ALL">모든 실습견 보기 (${state.dogs.length}두)</option>`;
+      state.dogs.forEach((dog) => {
+        html += `<option value="${dog.id}">${dog.no ? dog.no + '. ' : ''}${escapeHtml(dog.name)} (${escapeHtml(formatStudentsList(dog))})</option>`;
+      });
+      sel.innerHTML = html;
+      if (state.dogs.some((d) => d.id === currentVal)) sel.value = currentVal;
+    }
+
+    window.renderHistoryTable = function() {
+      const tbody = document.getElementById('historyTableBody');
+      if (!tbody) return;
+      const dogFilter = document.getElementById('historyDogFilter')?.value || 'ALL';
+      const periodFilter = document.getElementById('historyPeriodFilter')?.value || 'ALL';
+      const healthFilter = document.getElementById('historyHealthFilter')?.value || 'ALL';
+
+      const sortedLogs = [...state.logs].sort((a, b) => {
+        if (a.date !== b.date) return b.date.localeCompare(a.date);
+        return (b.submittedAt || '').localeCompare(a.submittedAt || '');
+      });
+
+      const filtered = sortedLogs.filter((l) => {
+        if (dogFilter !== 'ALL' && l.dogId !== dogFilter) return false;
+        if (periodFilter !== 'ALL' && l.period !== periodFilter) return false;
+        if (healthFilter === 'ALERT' && !isLogAbnormal(l)) return false;
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="py-10 text-center text-slate-400 font-bold">조건에 해당하는 일지 기록이 없습니다.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map((l) => {
+        const dog = state.dogs.find((d) => d.id === l.dogId);
+        const dogName = dog ? dog.name : l.dogId;
+        const pBadge = l.period === 'AM'
+          ? `<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-extrabold text-[11px]">☀️ 오전</span>`
+          : `<span class="px-2 py-0.5 rounded bg-indigo-100 text-indigo-900 font-extrabold text-[11px]">🌙 오후</span>`;
+
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="py-3.5 px-4 font-bold text-slate-800 whitespace-nowrap">${escapeHtml(l.date)}<div class="mt-0.5">${pBadge}</div></td>
+            <td class="py-3.5 px-4 font-extrabold text-slate-900">${escapeHtml(dogName)}<div class="text-[11px] font-semibold text-slate-500">${escapeHtml(dog?.breed || '')} · ${escapeHtml(dog?.location || '')}</div></td>
+            <td class="py-3.5 px-4 font-semibold text-slate-700">${l.weight}kg<div class="text-[11px] text-slate-500">사료 ${l.feedAmount}g (${escapeHtml(l.feedStatus)})</div></td>
+            <td class="py-3.5 px-4 font-semibold text-slate-700">${l.walkSkipped ? '<span class="text-rose-600 font-bold">산책생략</span>' : `${l.walkMinutes}분<div class="text-[11px] text-slate-400">${escapeHtml(l.walkStart)}~${escapeHtml(l.walkEnd)}</div>`}</td>
+            <td class="py-3.5 px-4 text-xs">
+              <div><strong>대변:</strong> ${escapeHtml(formatFecesDisplay(l))}</div>
+              <div class="mt-0.5"><strong>소변:</strong> ${escapeHtml(formatUrineDisplay(l))}</div>
+            </td>
+            <td class="py-3.5 px-4 text-xs max-w-xs">
+              <div class="text-[11px] text-slate-500">${escapeHtml((l.checkItems || []).join(', '))}</div>
+              ${l.notes ? `<div class="mt-1 font-bold text-sky-900 bg-sky-50 px-2 py-1 rounded border border-sky-100">💬 ${escapeHtml(l.notes)}</div>` : ''}
+            </td>
+            <td class="py-3.5 px-4 font-extrabold text-slate-900 whitespace-nowrap">${escapeHtml(l.writer)}<div class="text-[11px] font-normal text-slate-400">${escapeHtml(l.submittedAt)}</div></td>
+            <td class="py-3.5 px-4 text-right whitespace-nowrap">
+              <button onclick="openLogDetailModal('${l.id}')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-sky-100 text-slate-700 hover:text-sky-800 text-xs font-bold cursor-pointer">상세/수정</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    };
+
+    window.openLogDetailModal = function(logId) {
+      const log = state.logs.find((l) => l.id === logId);
+      if (!log) return;
+      const dog = state.dogs.find((d) => d.id === log.dogId);
+      const modal = document.getElementById('logDetailModal');
+      const pKor = log.period === 'AM' ? '☀️ 오전(아침) 관리' : '🌙 오후(저녁) 관리';
+
+      document.getElementById('modalLogPeriodBadge').textContent = `${log.date} · ${pKor}`;
+      document.getElementById('modalLogTitle').textContent = `${dog ? dog.name : ''} 관리 일지 상세 (작성자: ${log.writer})`;
+
+      document.getElementById('modalLogBody').innerHTML = `
+        <div class="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs">
+          <div><span class="text-slate-400 font-bold block">측정 몸무게</span><span class="text-base font-black text-slate-900">${log.weight} kg</span></div>
+          <div><span class="text-slate-400 font-bold block">사료 급여량</span><span class="text-base font-black text-slate-900">${log.feedAmount} g (${escapeHtml(log.feedStatus)})</span></div>
+          <div class="col-span-2"><span class="text-slate-400 font-bold block">산책 시간</span><span class="font-extrabold text-slate-800">${log.walkSkipped ? '산책 생략/제한' : `${log.walkStart} ~ ${log.walkEnd} (총 ${log.walkMinutes}분)`}</span></div>
+        </div>
+        <div class="space-y-2 text-xs">
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <div><strong class="text-slate-700">💩 배변 상태:</strong> <span class="font-extrabold text-slate-900">${escapeHtml(formatFecesDisplay(log))}</span></div>
+            <div class="mt-1"><strong class="text-slate-700">💧 배뇨 상태:</strong> <span class="font-extrabold text-slate-900">${escapeHtml(formatUrineDisplay(log))}</span></div>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <strong class="text-slate-700 block mb-1">✨ 실시한 처치 체크리스트:</strong>
+            <p class="font-bold text-slate-800">${escapeHtml((log.checkItems || []).join(', ') || '없음')}</p>
+          </div>
+          <div class="p-3 rounded-xl bg-amber-50 border border-amber-200">
+            <strong class="text-amber-900 block mb-1">📝 학생 작성 특이사항 및 기타 메모:</strong>
+            <p class="font-bold text-amber-950 whitespace-pre-wrap">${escapeHtml(log.notes || '별도 특이사항 메모 없음')}</p>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('modalDeleteLogBtn').onclick = async () => {
+        await removeLogRecord(log.id);
+        closeLogDetailModal();
+        showToast('해당 관리 일지 기록이 삭제되었습니다.');
+      };
+
+      document.getElementById('modalEditLogBtn').onclick = () => {
+        closeLogDetailModal();
+        jumpToWriteLog(log.date, log.period, log.dogId);
+      };
+
+      modal.classList.remove('hidden');
+    };
+
+    window.closeLogDetailModal = function() {
+      document.getElementById('logDetailModal').classList.add('hidden');
+    };
+
+    window.exportLogsToCSV = function() {
+      const headers = ['일자', '시간대', '연번', '실습견명', '품종', '구분', '작성학생', '제출시각', '몸무게(kg)', '사료급여량(g)', '섭취상태', '산책시작', '산책종료', '산책시간(분)', '배변상태', '배변기타상세', '배뇨상태', '배뇨기타상세', '실시처치항목', '특이사항메모'];
+      const rows = state.logs.map((l) => {
+        const dog = state.dogs.find((d) => d.id === l.dogId) || {};
+        return [
+          l.date,
+          l.period === 'AM' ? '오전' : '오후',
+          dog.no || '',
+          dog.name || l.dogId,
+          dog.breed || '',
+          dog.location || '',
+          l.writer,
+          l.submittedAt,
+          l.weight,
+          l.feedAmount,
+          l.feedStatus,
+          l.walkSkipped ? '생략' : l.walkStart,
+          l.walkSkipped ? '생략' : l.walkEnd,
+          l.walkMinutes,
+          l.feces,
+          l.fecesCustom || '',
+          l.urine,
+          l.urineCustom || '',
+          (l.checkItems || []).join(' / '),
+          (l.notes || '').replace(/\n/g, ' ')
+        ].map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(',');
+      });
+
+      const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `한국펫고_실습견관리일지_${state.monitorDate}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+      showToast('엑셀(CSV) 파일이 다운로드되었습니다.');
+    };
+
+    // 초기 구동
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('formDateInput').value = TODAY_STR;
+      document.getElementById('monitorDateInput').value = TODAY_STR;
+      refreshAllViews();
+      handleFormDogOrSlotChange();
+      initCloudSync();
+    });
+  </script>
+</body>
+</html>
