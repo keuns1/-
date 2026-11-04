@@ -22,21 +22,10 @@
       to { opacity: 1; transform: translateY(0); }
     }
     /* 커스텀 스크롤바 */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #f1f5f9;
-      border-radius: 9999px;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 9999px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #94a3b8;
-    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -52,7 +41,6 @@
         <!-- 좌측: 깨지지 않는 순수 SVG 한국펫고등학교 공식 엠블럼 & 타이틀 -->
         <div class="flex items-center justify-between gap-2">
           <div class="flex items-center gap-3">
-            <!-- 한국펫고등학교 벡터 엠블럼 (100% 인라인 SVG - 이미지 깨짐 원천 차단) -->
             <div class="w-12 h-12 rounded-2xl bg-[#0062B1] p-1 flex items-center justify-center shadow-sm shrink-0">
               <svg viewBox="0 0 120 120" class="w-full h-full" xmlns="http://www.w3.org/2000/svg" aria-label="한국펫고등학교 로고">
                 <circle cx="60" cy="60" r="56" fill="#0062B1" stroke="#ffffff" stroke-width="2" stroke-dasharray="6 3"/>
@@ -76,7 +64,7 @@
                 </span>
                 <span id="syncStatusBadge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                   <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  정상 작동 중
+                  실시간 연동 중
                 </span>
               </div>
               <p class="text-xs text-slate-500">아침·저녁 개체별 관리 기록 (제출된 기록 열람 및 개체 추가·제거는 선생님 전용)</p>
@@ -1114,7 +1102,6 @@
   <!-- Firebase 연동 및 애플리케이션 로직 -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // 오늘 날짜 문자열 (YYYY-MM-DD)
@@ -1170,97 +1157,23 @@
       { no: 37, id: 'dog-37', name: '불곰', breed: '포메라니안', location: '훈련', emoji: '🐻‍❄️', baseWeight: 3.6, recommendedFeed: 35, primaryStudent: '신예린', secondaryStudent: '신채현', thirdStudent: '', caution: '소형견 기관지 보호(하네스 착용 권장, 챙질 금지), 산책 후 발·눈물 타월링', excluded: false }
     ];
 
-    // 초기 샘플 일지
-    function createInitialSampleLogs(dateStr) {
-      return [
-        {
-          id: `${dateStr}_AM_dog-02`,
-          date: dateStr,
-          period: 'AM',
-          dogId: 'dog-02',
-          writer: '김민경',
-          weight: 25.1,
-          feedAmount: 200,
-          feedStatus: '완식',
-          walkSkipped: false,
-          walkStart: '08:10',
-          walkEnd: '08:35',
-          walkMinutes: 25,
-          feces: '정상',
-          fecesCustom: '',
-          urine: '정상',
-          urineCustom: '',
-          checkItems: ['물 급여 완료', '기본 타월링(눈·입·발·생식기)', '필수 약/유산균 급여', '넥카라 착용 확인'],
-          notes: '하늘색 유산균 1포 사료와 함께 완식함. 식후 눈물 닦아주고 넥카라 5번째 칸 착용 확인 완료.',
-          submittedAt: '08:42'
-        },
-        {
-          id: `${dateStr}_AM_dog-15`,
-          date: dateStr,
-          period: 'AM',
-          dogId: 'dog-15',
-          writer: '유하람',
-          weight: 14.8,
-          feedAmount: 140,
-          feedStatus: '완식',
-          walkSkipped: true,
-          walkStart: '',
-          walkEnd: '',
-          walkMinutes: 0,
-          feces: '기타(직접입력)',
-          fecesCustom: '처음엔 형태가 있었으나 끝부분이 약간 무른 변 (지사제 급여 전 관찰 중)',
-          urine: '정상',
-          urineCustom: '',
-          checkItems: ['물 급여 완료', '필수 약/유산균 급여', '넥카라 착용 확인', '환부 소독/연고/보습제'],
-          notes: '수의보조실 격리 상태에서 수술 부위 포비돈 소독 1회 및 아침 내복약 급여 완료.',
-          submittedAt: '08:48'
-        },
-        {
-          id: `${dateStr}_AM_dog-20`,
-          date: dateStr,
-          period: 'AM',
-          dogId: 'dog-20',
-          writer: '전다솔',
-          weight: 5.8,
-          feedAmount: 40,
-          feedStatus: '완식',
-          walkSkipped: false,
-          walkStart: '08:15',
-          walkEnd: '08:35',
-          walkMinutes: 20,
-          feces: '정상',
-          fecesCustom: '',
-          urine: '정상',
-          urineCustom: '',
-          checkItems: ['물 급여 완료', '기본 타월링(눈·입·발·생식기)', '넥카라 착용 확인'],
-          notes: '하네스 착용 후 산책 완료. 넥카라 착용 및 눈물·입·생식기 타월링 완료.',
-          submittedAt: '08:51'
-        }
-      ];
-    }
-
     // 전역 상태
     const state = {
       isTeacher: false,
       teacherPin: '1974',
-      mainTab: 'write', // 기본값: 학생 작성 화면
+      mainTab: 'write',
       monitorDate: TODAY_STR,
       monitorFilter: 'all',
       formCategoryFilter: 'ALL',
       dogs: JSON.parse(JSON.stringify(RAW_37_DOGS)),
-      logs: [...createInitialSampleLogs(TODAY_STR)],
-      // 작성 폼 상태
+      logs: [],
       formPeriod: 'AM',
       formFeedStatus: '완식',
       formFeces: '정상',
       formUrine: '정상',
       pendingDeleteDogId: null,
-      // Firebase 상태
       useFirebase: false,
-      db: null,
-      auth: null,
-      currentUser: null,
-      appId: typeof __app_id !== 'undefined' ? __app_id : 'korea-pet-high-care-app'
+      db: null
     };
 
     // 유틸리티
@@ -1275,15 +1188,11 @@
     function showToast(msg, type = 'success') {
       const container = document.getElementById('toastContainer');
       const el = document.createElement('div');
-      const bgClass = type === 'error'
-        ? 'bg-rose-600 text-white'
-        : 'bg-slate-900 text-white';
+      const bgClass = type === 'error' ? 'bg-rose-600 text-white' : 'bg-slate-900 text-white';
       el.className = `${bgClass} px-4 py-3 rounded-2xl shadow-lg text-xs sm:text-sm font-extrabold flex items-center gap-2 fade-in pointer-events-auto`;
       el.innerHTML = `<span>${type === 'error' ? '⚠️' : '✅'}</span><span>${escapeHtml(msg)}</span>`;
       container.appendChild(el);
-      setTimeout(() => {
-        el.remove();
-      }, 3200);
+      setTimeout(() => el.remove(), 3200);
     }
 
     function formatKoreanDateLabel(dateStr) {
@@ -1299,7 +1208,6 @@
       return [dog.primaryStudent, dog.secondaryStudent, dog.thirdStudent].filter(Boolean).join(', ');
     }
 
-    // 배변/배뇨/특이사항 이상 징후 또는 기타 직접입력 여부 판별
     function isLogAbnormal(log) {
       if (!log) return false;
       if (log.feces && log.feces !== '정상' && log.feces !== '배변안함') return true;
@@ -1315,9 +1223,7 @@
       if (!log) return '-';
       const base = log.feces || '정상';
       const custom = (log.fecesCustom || '').trim();
-      if (custom) {
-        return base === '기타(직접입력)' ? `기타: ${custom}` : `${base} (${custom})`;
-      }
+      if (custom) return base === '기타(직접입력)' ? `기타: ${custom}` : `${base} (${custom})`;
       return base;
     }
 
@@ -1325,104 +1231,76 @@
       if (!log) return '-';
       const base = log.urine || '정상';
       const custom = (log.urineCustom || '').trim();
-      if (custom) {
-        return base === '기타(직접입력)' ? `기타: ${custom}` : `${base} (${custom})`;
-      }
+      if (custom) return base === '기타(직접입력)' ? `기타: ${custom}` : `${base} (${custom})`;
       return base;
     }
 
     // =========================================================================
-    // Firebase 초기화 (환경변수 존재 시 자동 실시간 연동, 없을 시 인메모리 즉시 작동)
+    // Firebase 초기화 및 실시간 동기화 (인증 없이 Firestore 직접 연결)
     // =========================================================================
     async function initCloudSync() {
       try {
-        if (typeof __firebase_config === 'undefined' || !__firebase_config) {
-          return;
-        }
-        const firebaseConfig = JSON.parse(__firebase_config);
+        // 선생님께서 발급받은 Firebase 연결 코드가 그대로 들어갑니다.
+        const firebaseConfig = {
+          apiKey: "AIzaSyChGClfqBHnOQOHkfwINVbn0fVmvFQEGS8",
+          authDomain: "koreapet-c8108.firebaseapp.com",
+          projectId: "koreapet-c8108",
+          storageBucket: "koreapet-c8108.firebasestorage.app",
+          messagingSenderId: "816355058944",
+          appId: "1:816355058944:web:f5c9a69717be86a8b6bfe5",
+          measurementId: "G-65QCFY2SEE"
+        };
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
         const db = getFirestore(app);
 
-        state.auth = auth;
         state.db = db;
-
-        // RULE 3: Auth Before Queries
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
-
-        onAuthStateChanged(auth, (user) => {
-          state.currentUser = user;
-          if (user) {
-            state.useFirebase = true;
-            setupFirestoreListeners();
-          }
-        });
+        state.useFirebase = true;
+        setupFirestoreListeners();
       } catch (e) {
-        console.warn('로컬 세션 모드로 동작합니다:', e);
+        console.warn('Firebase 연결 중 오류 발생. 로컬 모드로 동작합니다.', e);
       }
     }
 
     function setupFirestoreListeners() {
-      if (!state.currentUser || !state.db) return;
+      if (!state.db) return;
       const db = state.db;
-      const dogsColRef = collection(db, 'artifacts', state.appId, 'public', 'data', 'dogs');
-      const logsColRef = collection(db, 'artifacts', state.appId, 'public', 'data', 'care_logs');
 
-      onSnapshot(
-        dogsColRef,
-        async (snapshot) => {
-          if (!state.currentUser) return;
-          if (snapshot.empty) {
-            for (const d of RAW_37_DOGS) {
-              await setDoc(doc(db, 'artifacts', state.appId, 'public', 'data', 'dogs', d.id), d);
-            }
-          } else {
-            const loadedDogs = [];
-            snapshot.forEach((docSnap) => {
-              const data = docSnap.data();
-              if (data && data.id) loadedDogs.push(data);
-            });
-            if (loadedDogs.length > 0) {
-              loadedDogs.sort((a, b) => (a.no || 999) - (b.no || 999));
-              state.dogs = loadedDogs;
-              refreshAllViews();
-            }
+      // 실습견(dogs) 컬렉션 실시간 구독
+      onSnapshot(collection(db, 'dogs'), async (snapshot) => {
+        if (snapshot.empty) {
+          // 데이터베이스가 처음 만들어져 텅 비어있을 때, 학교 기본 37두 자동 세팅
+          for (const d of RAW_37_DOGS) {
+            await setDoc(doc(db, 'dogs', d.id), d);
           }
-        },
-        (err) => console.error('실습견 구독 오류:', err)
-      );
+        } else {
+          const loadedDogs = [];
+          snapshot.forEach((docSnap) => loadedDogs.push(docSnap.data()));
+          loadedDogs.sort((a, b) => (a.no || 999) - (b.no || 999));
+          state.dogs = loadedDogs;
+          refreshAllViews();
+        }
+      }, (err) => console.error('실습견 동기화 오류:', err));
 
-      onSnapshot(
-        logsColRef,
-        (snapshot) => {
-          if (!state.currentUser) return;
-          if (!snapshot.empty) {
-            const loadedLogs = [];
-            snapshot.forEach((docSnap) => loadedLogs.push(docSnap.data()));
-            state.logs = loadedLogs;
-            refreshAllViews();
-          }
-        },
-        (err) => console.error('일지 구독 오류:', err)
-      );
+      // 관리 일지(care_logs) 컬렉션 실시간 구독
+      onSnapshot(collection(db, 'care_logs'), (snapshot) => {
+        if (!snapshot.empty) {
+          const loadedLogs = [];
+          snapshot.forEach((docSnap) => loadedLogs.push(docSnap.data()));
+          state.logs = loadedLogs;
+          refreshAllViews();
+        }
+      }, (err) => console.error('일지 동기화 오류:', err));
     }
 
     async function saveDogRecord(dogObj) {
       const idx = state.dogs.findIndex((d) => d.id === dogObj.id);
-      if (idx >= 0) {
-        state.dogs[idx] = dogObj;
-      } else {
-        state.dogs.push(dogObj);
-      }
+      if (idx >= 0) state.dogs[idx] = dogObj;
+      else state.dogs.push(dogObj);
       state.dogs.sort((a, b) => (a.no || 999) - (b.no || 999));
       refreshAllViews();
 
-      if (state.useFirebase && state.currentUser && state.db) {
-        await setDoc(doc(state.db, 'artifacts', state.appId, 'public', 'data', 'dogs', dogObj.id), dogObj);
+      if (state.useFirebase && state.db) {
+        await setDoc(doc(state.db, 'dogs', dogObj.id), dogObj);
       }
     }
 
@@ -1430,22 +1308,19 @@
       state.dogs = state.dogs.filter((d) => d.id !== dogId);
       refreshAllViews();
 
-      if (state.useFirebase && state.currentUser && state.db) {
-        await deleteDoc(doc(state.db, 'artifacts', state.appId, 'public', 'data', 'dogs', dogId));
+      if (state.useFirebase && state.db) {
+        await deleteDoc(doc(state.db, 'dogs', dogId));
       }
     }
 
     async function saveLogRecord(logObj) {
       const idx = state.logs.findIndex((l) => l.id === logObj.id);
-      if (idx >= 0) {
-        state.logs[idx] = logObj;
-      } else {
-        state.logs.push(logObj);
-      }
+      if (idx >= 0) state.logs[idx] = logObj;
+      else state.logs.push(logObj);
       refreshAllViews();
 
-      if (state.useFirebase && state.currentUser && state.db) {
-        await setDoc(doc(state.db, 'artifacts', state.appId, 'public', 'data', 'care_logs', logObj.id), logObj);
+      if (state.useFirebase && state.db) {
+        await setDoc(doc(state.db, 'care_logs', logObj.id), logObj);
       }
     }
 
@@ -1453,8 +1328,8 @@
       state.logs = state.logs.filter((l) => l.id !== logId);
       refreshAllViews();
 
-      if (state.useFirebase && state.currentUser && state.db) {
-        await deleteDoc(doc(state.db, 'artifacts', state.appId, 'public', 'data', 'care_logs', logId));
+      if (state.useFirebase && state.db) {
+        await deleteDoc(doc(state.db, 'care_logs', logId));
       }
     }
 
@@ -1542,13 +1417,8 @@
       showToast(`교사 비밀번호가 [${newPin}]로 변경되었습니다.`);
     };
 
-    window.openDeployGuideModal = function() {
-      document.getElementById('deployGuideModal').classList.remove('hidden');
-    };
-
-    window.closeDeployGuideModal = function() {
-      document.getElementById('deployGuideModal').classList.add('hidden');
-    };
+    window.openDeployGuideModal = function() { document.getElementById('deployGuideModal').classList.remove('hidden'); };
+    window.closeDeployGuideModal = function() { document.getElementById('deployGuideModal').classList.add('hidden'); };
 
     window.switchMainTab = function(tabName) {
       if (!state.isTeacher && tabName !== 'write') {
@@ -1596,11 +1466,8 @@
       ['ALL', '훈련', '미용', '입양모집', '입양예정'].forEach((c) => {
         const btn = document.getElementById(`formCatBtn-${c}`);
         if (!btn) return;
-        if (c === cat) {
-          btn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-sky-600 text-white cursor-pointer';
-        } else {
-          btn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer';
-        }
+        if (c === cat) btn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-sky-600 text-white cursor-pointer';
+        else btn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer';
       });
       populateFormDogSelectAndCards();
     };
@@ -1630,9 +1497,7 @@
         <option value="${dog.id}">${dog.no || idx + 1}. ${escapeHtml(dog.name)} [${escapeHtml(dog.breed || '')}·${escapeHtml(dog.location)}] — 담당: ${escapeHtml(formatStudentsList(dog))}${dog.excluded ? ' (일시제외)' : ''}</option>
       `).join('');
 
-      if (activeDogs.some((d) => d.id === currentVal)) {
-        sel.value = currentVal;
-      }
+      if (activeDogs.some((d) => d.id === currentVal)) sel.value = currentVal;
 
       const filteredDogs = activeDogs.filter((dog) => {
         if (catFilter !== 'ALL' && dog.location !== catFilter) return false;
@@ -1702,7 +1567,6 @@
 
       populateFormDogSelectAndCards();
 
-      // 주의사항 배너 업데이트
       document.getElementById('cautionDogTitle').textContent = `${dog.emoji || '🐶'} ${dog.name} 필수 관리 주의사항 (담당: ${formatStudentsList(dog)})`;
       document.getElementById('cautionDogBreed').textContent = dog.breed || '실습견';
       document.getElementById('cautionDogCategory').textContent = dog.location;
@@ -1711,7 +1575,6 @@
       document.getElementById('weightHintBtn').textContent = `기준 체중(${dog.baseWeight}kg) 자동입력`;
       document.getElementById('feedHintBtn').textContent = `권장 사료량(${dog.recommendedFeed}g) 자동입력`;
 
-      // 작성자 빠른 선택 칩 생성
       const chipsContainer = document.getElementById('writerQuickChips');
       const assignedList = [dog.primaryStudent, dog.secondaryStudent, dog.thirdStudent].filter(Boolean);
       let chipsHtml = assignedList.map((stu, idx) => `
@@ -1719,11 +1582,7 @@
           담당: ${escapeHtml(stu)}
         </button>
       `).join('');
-      chipsHtml += `
-        <button type="button" onclick="setWriterName('사육당번')" class="px-3 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold transition-colors cursor-pointer">
-          사육당번
-        </button>
-      `;
+      chipsHtml += `<button type="button" onclick="setWriterName('사육당번')" class="px-3 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold transition-colors cursor-pointer">사육당번</button>`;
       chipsContainer.innerHTML = chipsHtml;
 
       const existingLog = state.logs.find((l) => l.date === dateStr && l.period === period && l.dogId === dogId);
@@ -1771,7 +1630,6 @@
         submitBtnText.textContent = '관리 일지 저장 및 제출하기';
       }
 
-      // 기본값 세팅
       document.getElementById('formWriterInput').value = dog.primaryStudent || '';
       document.getElementById('formWeightInput').value = dog.baseWeight;
       document.getElementById('formFeedAmountInput').value = dog.recommendedFeed;
@@ -1791,19 +1649,13 @@
       document.getElementById('formNotesInput').value = '';
     };
 
-    window.setWriterName = function(name) {
-      document.getElementById('formWriterInput').value = name;
-    };
-
+    window.setWriterName = function(name) { document.getElementById('formWriterInput').value = name; };
     window.applyRecommendedWeight = function() {
-      const dogId = document.getElementById('formDogSelect').value;
-      const dog = state.dogs.find((d) => d.id === dogId);
+      const dog = state.dogs.find((d) => d.id === document.getElementById('formDogSelect').value);
       if (dog) document.getElementById('formWeightInput').value = dog.baseWeight;
     };
-
     window.applyRecommendedFeed = function() {
-      const dogId = document.getElementById('formDogSelect').value;
-      const dog = state.dogs.find((d) => d.id === dogId);
+      const dog = state.dogs.find((d) => d.id === document.getElementById('formDogSelect').value);
       if (dog) document.getElementById('formFeedAmountInput').value = dog.recommendedFeed;
     };
 
@@ -1880,7 +1732,6 @@
       calculateWalkDuration();
     };
 
-    // 배변 상태 선택 ('기타(직접입력)' 선택 시 텍스트창 자동 포커스 및 강조)
     window.selectFecesStatus = function(val, focusCustom = false) {
       state.formFeces = val;
       document.querySelectorAll('.feces-btn').forEach((btn) => {
@@ -1888,15 +1739,12 @@
         if (bVal === val) {
           const isAlert = val.includes('설사') || val.includes('무른') || val.includes('혈변');
           const isCustom = val.includes('기타');
-          const styleClass = isAlert
-            ? 'bg-rose-50 border-rose-500 text-rose-900 font-extrabold'
-            : (isCustom ? 'bg-sky-50 border-sky-600 text-sky-900 font-extrabold' : 'bg-emerald-50 border-emerald-500 text-emerald-900 font-extrabold');
+          const styleClass = isAlert ? 'bg-rose-50 border-rose-500 text-rose-900 font-extrabold' : (isCustom ? 'bg-sky-50 border-sky-600 text-sky-900 font-extrabold' : 'bg-emerald-50 border-emerald-500 text-emerald-900 font-extrabold');
           btn.className = `feces-btn py-2 px-2.5 rounded-xl text-xs border-2 transition-all cursor-pointer ${styleClass}`;
         } else {
           btn.className = 'feces-btn py-2 px-2.5 rounded-xl text-xs font-bold border-2 transition-all bg-white border-slate-200 text-slate-600 cursor-pointer';
         }
       });
-
       const customInput = document.getElementById('formFecesCustomInput');
       if (val === '기타(직접입력)' && customInput) {
         customInput.classList.add('ring-2', 'ring-sky-500', 'bg-sky-50/40');
@@ -1906,7 +1754,6 @@
       }
     };
 
-    // 배뇨 상태 선택 ('기타(직접입력)' 선택 시 텍스트창 자동 포커스 및 강조)
     window.selectUrineStatus = function(val, focusCustom = false) {
       state.formUrine = val;
       document.querySelectorAll('.urine-btn').forEach((btn) => {
@@ -1914,15 +1761,12 @@
         if (bVal === val) {
           const isAlert = val.includes('혈뇨') || val.includes('진한') || val.includes('빈뇨');
           const isCustom = val.includes('기타');
-          const styleClass = isAlert
-            ? 'bg-amber-50 border-amber-500 text-amber-950 font-extrabold'
-            : (isCustom ? 'bg-sky-50 border-sky-600 text-sky-900 font-extrabold' : 'bg-emerald-50 border-emerald-500 text-emerald-900 font-extrabold');
+          const styleClass = isAlert ? 'bg-amber-50 border-amber-500 text-amber-950 font-extrabold' : (isCustom ? 'bg-sky-50 border-sky-600 text-sky-900 font-extrabold' : 'bg-emerald-50 border-emerald-500 text-emerald-900 font-extrabold');
           btn.className = `urine-btn py-2 px-2.5 rounded-xl text-xs border-2 transition-all cursor-pointer ${styleClass}`;
         } else {
           btn.className = 'urine-btn py-2 px-2.5 rounded-xl text-xs font-bold border-2 transition-all bg-white border-slate-200 text-slate-600 cursor-pointer';
         }
       });
-
       const customInput = document.getElementById('formUrineCustomInput');
       if (val === '기타(직접입력)' && customInput) {
         customInput.classList.add('ring-2', 'ring-sky-500', 'bg-sky-50/40');
@@ -1933,21 +1777,17 @@
     };
 
     window.toggleCareCheckItem = function(btn, focusNotes = false) {
-      const isSelected = btn.classList.contains('border-sky-500');
-      if (isSelected) {
+      if (btn.classList.contains('border-sky-500')) {
         btn.className = 'care-check-chip px-3 py-1.5 rounded-xl text-xs font-bold border-2 bg-white border-slate-200 text-slate-600 transition-all cursor-pointer';
       } else {
         btn.className = 'care-check-chip px-3 py-1.5 rounded-xl text-xs font-bold border-2 bg-sky-50 border-sky-500 text-sky-900 transition-all cursor-pointer';
-        if (focusNotes) {
-          document.getElementById('formNotesInput')?.focus();
-        }
+        if (focusNotes) document.getElementById('formNotesInput')?.focus();
       }
     };
 
     function setChecklistItems(items) {
       document.querySelectorAll('.care-check-chip').forEach((btn) => {
-        const itemLabel = btn.getAttribute('data-item');
-        if (items.includes(itemLabel)) {
+        if (items.includes(btn.getAttribute('data-item'))) {
           btn.className = 'care-check-chip px-3 py-1.5 rounded-xl text-xs font-bold border-2 bg-sky-50 border-sky-500 text-sky-900 transition-all cursor-pointer';
         } else {
           btn.className = 'care-check-chip px-3 py-1.5 rounded-xl text-xs font-bold border-2 bg-white border-slate-200 text-slate-600 transition-all cursor-pointer';
@@ -1958,9 +1798,7 @@
     function getSelectedChecklistItems() {
       const arr = [];
       document.querySelectorAll('.care-check-chip').forEach((btn) => {
-        if (btn.classList.contains('border-sky-500')) {
-          arr.push(btn.getAttribute('data-item'));
-        }
+        if (btn.classList.contains('border-sky-500')) arr.push(btn.getAttribute('data-item'));
       });
       return arr;
     }
@@ -1985,13 +1823,11 @@
         showToast('작성자 학생 이름을 입력해 주세요.', 'error');
         return;
       }
-
       if (state.formFeces === '기타(직접입력)' && !fecesCustom) {
         showToast('배변 상태 [기타]를 선택하셨습니다. 상세 상태를 입력해 주세요.', 'error');
         document.getElementById('formFecesCustomInput').focus();
         return;
       }
-
       if (state.formUrine === '기타(직접입력)' && !urineCustom) {
         showToast('배뇨 상태 [기타]를 선택하셨습니다. 상세 상태를 입력해 주세요.', 'error');
         document.getElementById('formUrineCustomInput').focus();
@@ -2000,31 +1836,15 @@
 
       const now = new Date();
       const submittedAt = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
       const logObj = {
         id: `${dateStr}_${period}_${dogId}`,
-        date: dateStr,
-        period,
-        dogId,
-        writer,
-        weight,
-        feedAmount,
-        feedStatus: state.formFeedStatus,
-        walkSkipped,
-        walkStart,
-        walkEnd,
-        walkMinutes,
-        feces: state.formFeces,
-        fecesCustom,
-        urine: state.formUrine,
-        urineCustom,
-        checkItems: getSelectedChecklistItems(),
-        notes,
-        submittedAt
+        date: dateStr, period, dogId, writer, weight, feedAmount,
+        feedStatus: state.formFeedStatus, walkSkipped, walkStart, walkEnd, walkMinutes,
+        feces: state.formFeces, fecesCustom, urine: state.formUrine, urineCustom,
+        checkItems: getSelectedChecklistItems(), notes, submittedAt
       };
 
       await saveLogRecord(logObj);
-
       const dog = state.dogs.find((d) => d.id === dogId);
       const periodKor = period === 'AM' ? '오전(아침)' : '오후(저녁)';
       showToast(`${dog ? dog.name : ''} ${periodKor} 관리 일지가 제출되었습니다! (작성자: ${writer})`);
@@ -2047,12 +1867,7 @@
     // =========================================================================
     // [탭 2 - 교사 전용] 📊 교사 모니터링 대시보드
     // =========================================================================
-    window.handleMonitorDateChange = function(val) {
-      if (!val) return;
-      state.monitorDate = val;
-      renderMonitorDashboard();
-    };
-
+    window.handleMonitorDateChange = function(val) { if (val) { state.monitorDate = val; renderMonitorDashboard(); } };
     window.shiftMonitorDate = function(days) {
       const parts = state.monitorDate.split('-').map(Number);
       const dt = new Date(parts[0], parts[1] - 1, parts[2]);
@@ -2063,22 +1878,15 @@
       state.monitorDate = `${y}-${m}-${d}`;
       renderMonitorDashboard();
     };
-
-    window.setMonitorDateToday = function() {
-      state.monitorDate = TODAY_STR;
-      renderMonitorDashboard();
-    };
+    window.setMonitorDateToday = function() { state.monitorDate = TODAY_STR; renderMonitorDashboard(); };
 
     window.setMonitorFilter = function(filterType) {
       state.monitorFilter = filterType;
       ['all', 'missing', 'done', 'alert'].forEach((f) => {
         const btn = document.getElementById(`filterBtn-${f}`);
         if (!btn) return;
-        if (f === filterType) {
-          btn.className = 'px-2.5 py-1.5 rounded-lg bg-white text-slate-900 shadow-2xs transition-all cursor-pointer';
-        } else {
-          btn.className = 'px-2.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition-all cursor-pointer';
-        }
+        if (f === filterType) btn.className = 'px-2.5 py-1.5 rounded-lg bg-white text-slate-900 shadow-2xs transition-all cursor-pointer';
+        else btn.className = 'px-2.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition-all cursor-pointer';
       });
       renderMonitorDashboard();
     };
@@ -2104,35 +1912,19 @@
       const korLabel = document.getElementById('monitorDateKorLabel');
       if (korLabel) korLabel.textContent = formatKoreanDateLabel(dateStr);
 
-      // 일시 제외(excluded)되지 않은 출석 대상 실습견 기준 집계
       const activeDogs = state.dogs.filter((d) => !d.excluded);
       const excludedCount = state.dogs.length - activeDogs.length;
       const totalDogs = activeDogs.length;
       const dayLogs = state.logs.filter((l) => l.date === dateStr);
 
-      let amDone = 0;
-      let pmDone = 0;
-      let alertCount = 0;
-      const missingAmList = [];
-      const missingPmList = [];
+      let amDone = 0, pmDone = 0, alertCount = 0;
+      const missingAmList = [], missingPmList = [];
 
       activeDogs.forEach((dog) => {
         const amLog = dayLogs.find((l) => l.dogId === dog.id && l.period === 'AM');
         const pmLog = dayLogs.find((l) => l.dogId === dog.id && l.period === 'PM');
-
-        if (amLog) {
-          amDone++;
-          if (isLogAbnormal(amLog)) alertCount++;
-        } else {
-          missingAmList.push(dog);
-        }
-
-        if (pmLog) {
-          pmDone++;
-          if (isLogAbnormal(pmLog)) alertCount++;
-        } else {
-          missingPmList.push(dog);
-        }
+        if (amLog) { amDone++; if (isLogAbnormal(amLog)) alertCount++; } else missingAmList.push(dog);
+        if (pmLog) { pmDone++; if (isLogAbnormal(pmLog)) alertCount++; } else missingPmList.push(dog);
       });
 
       const amMissing = totalDogs - amDone;
@@ -2143,9 +1935,7 @@
 
       document.getElementById('statTotalDogs').textContent = totalDogs;
       document.getElementById('statTotalSlots').textContent = totalDogs * 2;
-      document.getElementById('statExcludedSubtext').textContent = excludedCount > 0
-        ? `전체 ${state.dogs.length}두 중 일시 제외 ${excludedCount}두`
-        : `전체 ${state.dogs.length}두 정상 출석 대상`;
+      document.getElementById('statExcludedSubtext').textContent = excludedCount > 0 ? `전체 ${state.dogs.length}두 중 일시 제외 ${excludedCount}두` : `전체 ${state.dogs.length}두 정상 출석 대상`;
 
       document.getElementById('statAmDone').textContent = amDone;
       document.getElementById('statAmTotal').textContent = totalDogs;
@@ -2195,10 +1985,8 @@
         `).join('');
       }
 
-      // 테이블 렌더링
       const locFilter = document.getElementById('locationFilterSelect')?.value || 'ALL';
       const searchQ = (document.getElementById('monitorSearchInput')?.value || '').trim().toLowerCase();
-
       const filteredDogs = state.dogs.filter((dog) => {
         if (locFilter !== 'ALL' && dog.location !== locFilter) return false;
         if (searchQ) {
@@ -2207,7 +1995,6 @@
         }
         const amLog = dayLogs.find((l) => l.dogId === dog.id && l.period === 'AM');
         const pmLog = dayLogs.find((l) => l.dogId === dog.id && l.period === 'PM');
-
         if (state.monitorFilter === 'missing') return !dog.excluded && (!amLog || !pmLog);
         if (state.monitorFilter === 'done') return !!(amLog || pmLog);
         if (state.monitorFilter === 'alert') return isLogAbnormal(amLog) || isLogAbnormal(pmLog);
@@ -2216,30 +2003,20 @@
 
       const tbody = document.getElementById('monitorTableBody');
       if (filteredDogs.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="5" class="py-10 text-center text-slate-400 font-bold text-sm">
-              조건에 해당하는 실습견이 없습니다.
-            </td>
-          </tr>
-        `;
+        tbody.innerHTML = `<tr><td colspan="5" class="py-10 text-center text-slate-400 font-bold text-sm">조건에 해당하는 실습견이 없습니다.</td></tr>`;
         return;
       }
 
       tbody.innerHTML = filteredDogs.map((dog, idx) => {
         const amLog = dayLogs.find((l) => l.dogId === dog.id && l.period === 'AM');
         const pmLog = dayLogs.find((l) => l.dogId === dog.id && l.period === 'PM');
-        const catBadgeColor = dog.location === '미용'
-          ? 'bg-pink-50 text-pink-700 border-pink-200'
-          : (dog.location.includes('입양') ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-sky-50 text-sky-700 border-sky-200');
+        const catBadgeColor = dog.location === '미용' ? 'bg-pink-50 text-pink-700 border-pink-200' : (dog.location.includes('입양') ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-sky-50 text-sky-700 border-sky-200');
 
         return `
           <tr class="hover:bg-slate-50/90 transition-colors ${dog.excluded ? 'opacity-60 bg-slate-50' : ''}">
             <td class="py-3.5 px-4 align-top">
               <div class="flex items-start gap-2.5">
-                <div class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-lg shrink-0 font-extrabold text-slate-500">
-                  ${dog.emoji || '🐶'}
-                </div>
+                <div class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-lg shrink-0 font-extrabold text-slate-500">${dog.emoji || '🐶'}</div>
                 <div>
                   <div class="flex items-center gap-1.5 flex-wrap">
                     <span class="text-xs font-extrabold text-slate-400">#${dog.no || idx + 1}</span>
@@ -2251,32 +2028,20 @@
                 </div>
               </div>
             </td>
-
             <td class="py-3.5 px-4 align-top">
               <div class="font-extrabold text-slate-800 text-xs sm:text-sm">${escapeHtml(formatStudentsList(dog))}</div>
               <div class="text-[11px] text-slate-400 mt-0.5">기준 ${dog.baseWeight}kg · 사료 ${dog.recommendedFeed}g</div>
             </td>
-
-            <td class="py-3.5 px-4 align-top">
-              ${renderSlotCellHtml(dateStr, 'AM', dog, amLog)}
-            </td>
-
-            <td class="py-3.5 px-4 align-top">
-              ${renderSlotCellHtml(dateStr, 'PM', dog, pmLog)}
-            </td>
-
-            <td class="py-3.5 px-4 align-top">
-              ${renderHealthSummaryCellHtml(amLog, pmLog, dog)}
-            </td>
+            <td class="py-3.5 px-4 align-top">${renderSlotCellHtml(dateStr, 'AM', dog, amLog)}</td>
+            <td class="py-3.5 px-4 align-top">${renderSlotCellHtml(dateStr, 'PM', dog, pmLog)}</td>
+            <td class="py-3.5 px-4 align-top">${renderHealthSummaryCellHtml(amLog, pmLog, dog)}</td>
           </tr>
         `;
       }).join('');
     };
 
     function renderSlotCellHtml(dateStr, period, dog, log) {
-      if (dog.excluded && !log) {
-        return `<div class="p-2.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold text-slate-500 text-center">⏸️ 일지 제외됨</div>`;
-      }
+      if (dog.excluded && !log) return `<div class="p-2.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold text-slate-500 text-center">⏸️ 일지 제외됨</div>`;
       if (!log) {
         return `
           <button onclick="jumpToWriteLog('${dateStr}', '${period}', '${dog.id}')" class="w-full p-2.5 rounded-xl border-2 border-dashed border-rose-200 hover:border-rose-400 bg-rose-50/50 hover:bg-rose-50 text-left transition-all group cursor-pointer">
@@ -2288,7 +2053,6 @@
           </button>
         `;
       }
-
       const walkText = log.walkSkipped ? '산책생략' : `${log.walkMinutes}분 산책`;
       return `
         <div onclick="openLogDetailModal('${log.id}')" class="p-2.5 rounded-xl border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50 transition-all cursor-pointer">
@@ -2296,36 +2060,22 @@
             <span class="text-xs font-extrabold text-emerald-800">✅ ${escapeHtml(log.writer)}</span>
             <span class="text-[10px] font-bold text-emerald-600">${escapeHtml(log.submittedAt)}</span>
           </div>
-          <div class="text-[11px] font-semibold text-slate-700 mt-1">
-            ${log.weight}kg · ${log.feedAmount}g(${escapeHtml(log.feedStatus)}) · ${walkText}
-          </div>
+          <div class="text-[11px] font-semibold text-slate-700 mt-1">${log.weight}kg · ${log.feedAmount}g(${escapeHtml(log.feedStatus)}) · ${walkText}</div>
         </div>
       `;
     }
 
     function renderHealthSummaryCellHtml(amLog, pmLog, dog) {
-      if (!amLog && !pmLog) {
-        return `<span class="text-xs text-slate-400 font-medium">${escapeHtml(dog.caution)}</span>`;
-      }
-
+      if (!amLog && !pmLog) return `<span class="text-xs text-slate-400 font-medium">${escapeHtml(dog.caution)}</span>`;
       const items = [];
       [amLog, pmLog].forEach((l) => {
         if (!l) return;
         const pLabel = l.period === 'AM' ? '오전' : '오후';
-        const fDisp = formatFecesDisplay(l);
-        const uDisp = formatUrineDisplay(l);
+        const fDisp = formatFecesDisplay(l), uDisp = formatUrineDisplay(l);
         const abnormal = isLogAbnormal(l);
-
-        items.push(`
-          <div class="text-xs ${abnormal ? 'text-rose-700 font-bold' : 'text-slate-700'}">
-            <span class="font-extrabold">[${pLabel}]</span> 대변: ${escapeHtml(fDisp)} / 소변: ${escapeHtml(uDisp)}
-          </div>
-        `);
-        if (l.notes) {
-          items.push(`<div class="text-[11px] text-sky-900 bg-sky-50 px-2 py-1 rounded-lg border border-sky-100 mt-0.5">💬 [${pLabel} ${escapeHtml(l.writer)}] ${escapeHtml(l.notes)}</div>`);
-        }
+        items.push(`<div class="text-xs ${abnormal ? 'text-rose-700 font-bold' : 'text-slate-700'}"><span class="font-extrabold">[${pLabel}]</span> 대변: ${escapeHtml(fDisp)} / 소변: ${escapeHtml(uDisp)}</div>`);
+        if (l.notes) items.push(`<div class="text-[11px] text-sky-900 bg-sky-50 px-2 py-1 rounded-lg border border-sky-100 mt-0.5">💬 [${pLabel} ${escapeHtml(l.writer)}] ${escapeHtml(l.notes)}</div>`);
       });
-
       return `<div class="space-y-1 max-w-xs">${items.join('')}</div>`;
     }
 
@@ -2336,7 +2086,6 @@
       switchMainTab('write');
     };
 
-    // 클립보드 복사 유틸
     function copyTextToClipboard(text, successMsg) {
       const ta = document.createElement('textarea');
       ta.value = text;
@@ -2344,27 +2093,20 @@
       ta.style.left = '-9999px';
       document.body.appendChild(ta);
       ta.select();
-      try {
-        document.execCommand('copy');
-        showToast(successMsg);
-      } catch (e) {
-        showToast('복사에 실패했습니다.', 'error');
-      } finally {
-        document.body.removeChild(ta);
-      }
+      try { document.execCommand('copy'); showToast(successMsg); } 
+      catch (e) { showToast('복사에 실패했습니다.', 'error'); } 
+      finally { document.body.removeChild(ta); }
     }
 
     window.copyKakaoMissingNotice = function(mode = 'all') {
       const dateStr = state.monitorDate;
       const dayLogs = state.logs.filter((l) => l.date === dateStr);
-      const missingAm = [];
-      const missingPm = [];
+      const missingAm = [], missingPm = [];
 
       state.dogs.filter(d => !d.excluded).forEach((dog) => {
         const amLog = dayLogs.find((l) => l.dogId === dog.id && l.period === 'AM');
         const pmLog = dayLogs.find((l) => l.dogId === dog.id && l.period === 'PM');
         const managerStr = formatStudentsList(dog);
-
         if (!amLog) missingAm.push(`• [${dog.location}] ${dog.name} (${managerStr})`);
         if (!pmLog) missingPm.push(`• [${dog.location}] ${dog.name} (${managerStr})`);
       });
@@ -2381,7 +2123,6 @@
         lines.push('');
       }
       lines.push('담당 학생들은 개체 관리 후 즉시 일지를 작성해 제출해 주세요!');
-
       copyTextToClipboard(lines.join('\n'), '카카오톡 미작성자 안내 문구가 복사되었습니다!');
     };
 
@@ -2389,7 +2130,6 @@
       const dateStr = state.monitorDate;
       const dayLogs = state.logs.filter((l) => l.date === dateStr);
       const alertLines = [];
-
       dayLogs.forEach((l) => {
         const dog = state.dogs.find((d) => d.id === l.dogId);
         if (!dog) return;
@@ -2398,7 +2138,6 @@
           alertLines.push(`• ${dog.name}(${pKor}/${l.writer}): 대변[${formatFecesDisplay(l)}], 소변[${formatUrineDisplay(l)}] ${l.notes ? '/ 메모: ' + l.notes : ''}`);
         }
       });
-
       const report = [
         `[🩺 한국펫고 실습견 일일 건강·특이사항 요약 (${dateStr})]`,
         `• 총 기록 건수: ${dayLogs.length}건`,
@@ -2406,7 +2145,6 @@
         '[주요 특이사항 및 기타 보고 내역]',
         alertLines.length ? alertLines.join('\n') : '• 특이 이상징후 없이 전 개체 양호합니다.'
       ].join('\n');
-
       copyTextToClipboard(report, '오늘 건강·특이사항 요약 리포트가 복사되었습니다!');
     };
 
@@ -2439,9 +2177,7 @@
           <div>
             <div class="flex items-start justify-between gap-2">
               <div class="flex items-center gap-3">
-                <div class="w-11 h-11 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center text-2xl shrink-0">
-                  ${dog.emoji || '🐶'}
-                </div>
+                <div class="w-11 h-11 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center text-2xl shrink-0">${dog.emoji || '🐶'}</div>
                 <div>
                   <div class="flex items-center gap-1.5 flex-wrap">
                     <span class="text-xs font-extrabold text-slate-400">#${dog.no || idx + 1}</span>
@@ -2457,30 +2193,22 @@
                 <div class="text-sky-700">사료 ${dog.recommendedFeed}g</div>
               </div>
             </div>
-
             <div class="mt-3.5 p-3 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between text-xs">
               <span class="text-slate-400 font-bold">담당 학생:</span>
               <span class="font-extrabold text-slate-900">${escapeHtml(formatStudentsList(dog))}</span>
             </div>
-
             <div class="mt-2.5 p-3 rounded-xl bg-amber-50/70 border border-amber-200/80 text-xs">
               <span class="font-extrabold text-amber-900 block mb-0.5">🚨 필수 관리 주의사항</span>
               <p class="text-amber-950 font-medium leading-relaxed line-clamp-2">${escapeHtml(dog.caution)}</p>
             </div>
           </div>
-
           <div class="flex flex-wrap items-center justify-between gap-1.5 pt-3 border-t border-slate-100">
             <button onclick="toggleDogExcluded('${dog.id}')" class="px-2.5 py-1.5 rounded-xl border ${dog.excluded ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-amber-300 bg-amber-50 text-amber-900'} text-[11px] font-extrabold cursor-pointer">
               ${dog.excluded ? '▶️ 출석 대상 복귀' : '⏸️ 일시 제외'}
             </button>
-
             <div class="flex items-center gap-1.5">
-              <button onclick="openDogModal('${dog.id}')" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-sky-100 text-slate-700 hover:text-sky-800 text-xs font-bold transition-colors cursor-pointer">
-                ✏️ 정보·담당 수정
-              </button>
-              <button onclick="openDeleteDogConfirmModal('${dog.id}')" class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white text-xs font-extrabold transition-colors cursor-pointer">
-                🗑️ 개체 제거
-              </button>
+              <button onclick="openDogModal('${dog.id}')" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-sky-100 text-slate-700 hover:text-sky-800 text-xs font-bold transition-colors cursor-pointer">✏️ 수정</button>
+              <button onclick="openDeleteDogConfirmModal('${dog.id}')" class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white text-xs font-extrabold transition-colors cursor-pointer">🗑️ 삭제</button>
             </div>
           </div>
         </div>
@@ -2493,16 +2221,11 @@
       if (!dog) return;
       dog.excluded = !dog.excluded;
       await saveDogRecord(dog);
-      showToast(dog.excluded
-        ? `${dog.name} 개체가 일시적으로 출석·미작성 집계에서 제외되었습니다.`
-        : `${dog.name} 개체가 정상 출석·일지 대상으로 복귀되었습니다.`);
+      showToast(dog.excluded ? `${dog.name} 개체가 출석에서 제외되었습니다.` : `${dog.name} 개체가 정상 출석 복귀되었습니다.`);
     };
 
     window.openDogModal = function(dogId = '') {
-      if (!state.isTeacher) {
-        handleTeacherAuthButtonClick();
-        return;
-      }
+      if (!state.isTeacher) { handleTeacherAuthButtonClick(); return; }
       const modal = document.getElementById('dogConfigModal');
       if (dogId) {
         const dog = state.dogs.find((d) => d.id === dogId);
@@ -2541,9 +2264,7 @@
       modal.classList.remove('hidden');
     };
 
-    window.closeDogModal = function() {
-      document.getElementById('dogConfigModal').classList.add('hidden');
-    };
+    window.closeDogModal = function() { document.getElementById('dogConfigModal').classList.add('hidden'); };
 
     window.handleDogConfigSubmit = async function(e) {
       e.preventDefault();
@@ -2570,7 +2291,6 @@
       showToast(`${dogObj.name} 실습견 정보가 저장되었습니다!`);
     };
 
-    // 실습견 삭제(제거) 확인 모달
     window.openDeleteDogConfirmModal = function(dogId) {
       if (!state.isTeacher) return;
       const dog = state.dogs.find((d) => d.id === dogId);
@@ -2599,21 +2319,16 @@
       document.getElementById('deleteDogConfirmModal').classList.add('hidden');
     };
 
-    window.openResetConfirmModal = function() {
-      document.getElementById('resetConfirmModal').classList.remove('hidden');
-    };
-
-    window.closeResetConfirmModal = function() {
-      document.getElementById('resetConfirmModal').classList.add('hidden');
-    };
+    window.openResetConfirmModal = function() { document.getElementById('resetConfirmModal').classList.remove('hidden'); };
+    window.closeResetConfirmModal = function() { document.getElementById('resetConfirmModal').classList.add('hidden'); };
 
     window.confirmResetToSchool37Dogs = async function() {
       closeResetConfirmModal();
       state.dogs = JSON.parse(JSON.stringify(RAW_37_DOGS));
       refreshAllViews();
-      if (state.useFirebase && state.currentUser && state.db) {
+      if (state.useFirebase && state.db) {
         for (const d of RAW_37_DOGS) {
-          await setDoc(doc(state.db, 'artifacts', state.appId, 'public', 'data', 'dogs', d.id), d);
+          await setDoc(doc(state.db, 'dogs', d.id), d);
         }
       }
       showToast('학교 표준 37두 실습견 및 담당 학생 배정 명단이 복원되었습니다!');
@@ -2734,35 +2449,18 @@
       modal.classList.remove('hidden');
     };
 
-    window.closeLogDetailModal = function() {
-      document.getElementById('logDetailModal').classList.add('hidden');
-    };
+    window.closeLogDetailModal = function() { document.getElementById('logDetailModal').classList.add('hidden'); };
 
     window.exportLogsToCSV = function() {
       const headers = ['일자', '시간대', '연번', '실습견명', '품종', '구분', '작성학생', '제출시각', '몸무게(kg)', '사료급여량(g)', '섭취상태', '산책시작', '산책종료', '산책시간(분)', '배변상태', '배변기타상세', '배뇨상태', '배뇨기타상세', '실시처치항목', '특이사항메모'];
       const rows = state.logs.map((l) => {
         const dog = state.dogs.find((d) => d.id === l.dogId) || {};
         return [
-          l.date,
-          l.period === 'AM' ? '오전' : '오후',
-          dog.no || '',
-          dog.name || l.dogId,
-          dog.breed || '',
-          dog.location || '',
-          l.writer,
-          l.submittedAt,
-          l.weight,
-          l.feedAmount,
-          l.feedStatus,
-          l.walkSkipped ? '생략' : l.walkStart,
-          l.walkSkipped ? '생략' : l.walkEnd,
-          l.walkMinutes,
-          l.feces,
-          l.fecesCustom || '',
-          l.urine,
-          l.urineCustom || '',
-          (l.checkItems || []).join(' / '),
-          (l.notes || '').replace(/\n/g, ' ')
+          l.date, l.period === 'AM' ? '오전' : '오후', dog.no || '', dog.name || l.dogId, dog.breed || '', dog.location || '',
+          l.writer, l.submittedAt, l.weight, l.feedAmount, l.feedStatus,
+          l.walkSkipped ? '생략' : l.walkStart, l.walkSkipped ? '생략' : l.walkEnd, l.walkMinutes,
+          l.feces, l.fecesCustom || '', l.urine, l.urineCustom || '',
+          (l.checkItems || []).join(' / '), (l.notes || '').replace(/\n/g, ' ')
         ].map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(',');
       });
 
@@ -2788,4 +2486,3 @@
   </script>
 </body>
 </html>
-
